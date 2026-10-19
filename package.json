@@ -14,7 +14,9 @@
     "build": "npm run build --workspaces --if-present",
     "test:unit": "npm run test --workspace=tests/unit",
     "test:e2e": "npm run test --workspace=tests/e2e",
-    "export:pdf": "node scripts/export-pdf.mjs"
+    "export:pdf": "node scripts/export-pdf.mjs",
+    "db:users": "npm run db:users --workspace=apps/api",
+    "db:sessions": "npm run db:sessions --workspace=apps/api"
   },
   "keywords": [
     "hiking",
