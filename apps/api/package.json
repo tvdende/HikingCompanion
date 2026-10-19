@@ -1,0 +1,20 @@
+{
+  "name": "@hiking-companion/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.7.2",
+    "@hiking-companion/core": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.111.0"
+  }
+}

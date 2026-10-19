@@ -1,0 +1,10 @@
+name = "hiking-companion-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.test]
+name = "hiking-companion-api-test"
+
+[env.production]
+name = "hiking-companion-api-prod"

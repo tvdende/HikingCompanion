@@ -1,0 +1,29 @@
+{
+  "name": "hiking-companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Progressive Web App with Planner and Companion modes for long-distance hikers",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tests/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "build": "npm run build --workspaces --if-present",
+    "test:unit": "npm run test --workspace=tests/unit",
+    "test:e2e": "npm run test --workspace=tests/e2e",
+    "export:pdf": "node scripts/export-pdf.mjs"
+  },
+  "keywords": [
+    "hiking",
+    "gpx",
+    "pwa",
+    "planner",
+    "maplibre",
+    "cloudflare"
+  ],
+  "author": "Thomas van der Ende",
+  "license": "MIT"
+}
