@@ -1,4 +1,7 @@
 export * from './types/index.js';
+export * from './gpx/parser.js';
+export * from './gpx/metrics.js';
+export * from './gpx/serializer.js';
 
 /**
  * Calculates straight-line distance between two coordinates in kilometers using Haversine formula.

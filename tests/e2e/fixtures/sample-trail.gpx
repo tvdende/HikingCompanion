@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="HikingCompanion" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Veluwe Heuvelrug Trail</name>
+    <desc>Prachtige testwandeling over de heide en door heuvelachtige bossen.</desc>
+  </metadata>
+  <trk>
+    <name>Veluwe Heuvelrug Trail</name>
+    <desc>Prachtige testwandeling over de heide en door heuvelachtige bossen.</desc>
+    <trkseg>
+      <trkpt lat="52.0500" lon="5.9500">
+        <ele>25.0</ele>
+        <time>2026-05-10T09:00:00Z</time>
+      </trkpt>
+      <trkpt lat="52.0530" lon="5.9540">
+        <ele>45.0</ele>
+        <time>2026-05-10T09:10:00Z</time>
+      </trkpt>
+      <trkpt lat="52.0560" lon="5.9580">
+        <ele>75.0</ele>
+        <time>2026-05-10T09:20:00Z</time>
+      </trkpt>
+      <trkpt lat="52.0590" lon="5.9620">
+        <ele>55.0</ele>
+        <time>2026-05-10T09:30:00Z</time>
+      </trkpt>
+      <trkpt lat="52.0620" lon="5.9660">
+        <ele>90.0</ele>
+        <time>2026-05-10T09:40:00Z</time>
+      </trkpt>
+      <trkpt lat="52.0650" lon="5.9700">
+        <ele>60.0</ele>
+        <time>2026-05-10T09:50:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

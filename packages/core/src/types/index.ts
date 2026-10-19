@@ -37,12 +37,20 @@ export interface HikeStage {
   coordinates: Coordinate[];
 }
 
+export interface RouteElevationMetrics {
+  elevationGainMeters: number;
+  elevationLossMeters: number;
+  minElevationMeters?: number;
+  maxElevationMeters?: number;
+}
+
 export interface HikeRoute {
   id: string;
   title: string;
   totalDistanceKm: number;
   stages: HikeStage[];
   surfaceBreakdown?: SurfaceBreakdown;
+  elevationMetrics?: RouteElevationMetrics;
   createdAt: string;
   updatedAt: string;
 }
