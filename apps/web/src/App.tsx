@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import type { AppMode } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
+import { LoginModal } from './components/LoginModal';
+import { AdminUsersModal } from './components/AdminUsersModal';
 
 export const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>('planner');
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   return (
     <div id="app-root" className="app-container">
-      <Header currentMode={mode} onModeChange={setMode} />
+      <Header
+        currentMode={mode}
+        onModeChange={setMode}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
+      />
 
       <main className="main-viewport">
         <MapCanvas />
@@ -101,6 +110,16 @@ export const App: React.FC = () => {
           </section>
         )}
       </main>
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
+
+      <AdminUsersModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
     </div>
   );
 };

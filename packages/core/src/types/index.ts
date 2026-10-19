@@ -47,9 +47,4 @@ export interface HikeRoute {
   updatedAt: string;
 }
 
-export type UserRole = 'admin' | 'planner' | 'user';
-
-export interface UserSubscription {
-  isPremium: boolean;
-  expiresAt?: string;
-}
+export * from './auth.js';

@@ -1,0 +1,105 @@
+name: Multi-Stage Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-test:
+    name: Deploy to Test Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: test
+      url: ${{ steps.deploy-pages.outputs.deployment-url || 'https://hiking-companion-test.pages.dev' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build monorepo packages and apps
+        run: npm run build
+
+      - name: Verify Cloudflare Secrets Configuration
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::warning::Cloudflare secrets (CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID) are not configured for environment 'test'. Please follow docs/cloudflare-setup-guide.md to set them up."
+            exit 1
+          fi
+
+      - name: Deploy API Worker to Cloudflare (Test)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'apps/api'
+          command: 'deploy --env test'
+
+      - name: Deploy Frontend to Cloudflare Pages (Test)
+        id: deploy-pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: 'pages deploy apps/web/dist --project-name=hiking-companion-test'
+
+  deploy-production:
+    name: Deploy to Production Environment
+    needs: deploy-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.deploy-pages.outputs.deployment-url || 'https://hiking-companion.pages.dev' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build monorepo packages and apps
+        run: npm run build
+
+      - name: Verify Cloudflare Secrets Configuration
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::warning::Cloudflare secrets (CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID) are not configured for environment 'production'. Please follow docs/cloudflare-setup-guide.md to set them up."
+            exit 1
+          fi
+
+      - name: Deploy API Worker to Cloudflare (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'apps/api'
+          command: 'deploy --env production'
+
+      - name: Deploy Frontend to Cloudflare Pages (Production)
+        id: deploy-pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: 'pages deploy apps/web/dist --project-name=hiking-companion'

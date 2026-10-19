@@ -176,6 +176,18 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
     * Ondergrondverdeling voor die specifieke etappe (bijv. 80% bospad/onverhard, 20% verhard).
     * Actuele weersvoorspelling per tijdsblok langs de route (temperatuur, neerslagkans, windkracht en richting via de gratis Open-Meteo API).
 
+### 4.8 Authenticatie, Zelfregistratie & Beheerderspaneel
+* **Laagdrempelige Zelfregistratie (OAuth 2.0 / OpenID Connect)**:
+  * Inloggen via toonaangevende providers: **Google**, **Microsoft** en **GitHub**.
+  * **Directe zelfregistratie**: Bij de eerste keer inloggen wordt het account automatisch aangemaakt.
+  * **Geen voorafgaande goedkeuring nodig**: Gebruikers kunnen direct beginnen met de standaardrol `user`.
+  * Veilige, stateful HTTP-only sessiecookies met automatische bescherming tegen CSRF en XSS.
+* **Beheerderspaneel (Admin User Management)**:
+  * Gebruikers met de rol `admin` hebben een speciale beheerdersomgeving in de applicatie.
+  * **Volledig gebruikersoverzicht**: Inzien van alle geregistreerde gebruikers, inclusief gekoppelde OAuth-providers, registratiedatum en laatste inlogtijd.
+  * **Rollenbeheer**: Eenvoudig rollen aanpassen (`user`, `planner`, `admin`).
+  * **Accountstatus & Blokkering**: Gebruikers direct deactiveren of blokkeren (waardoor alle actieve sessies direct ongeldig worden) of permanent verwijderen.
+
 ---
 
 ## 5. Teststrategie & Kwaliteitsborging

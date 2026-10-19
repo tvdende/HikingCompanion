@@ -3,8 +3,24 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
+[[d1_databases]]
+binding = "DB"
+database_name = "hiking-companion-db"
+database_id = "local-d1-db"
+migrations_dir = "drizzle/migrations"
+
 [env.test]
 name = "hiking-companion-api-test"
+[[env.test.d1_databases]]
+binding = "DB"
+database_name = "hiking-companion-db-test"
+database_id = "test-d1-db"
+migrations_dir = "drizzle/migrations"
 
 [env.production]
 name = "hiking-companion-api-prod"
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "hiking-companion-db-prod"
+database_id = "prod-d1-db"
+migrations_dir = "drizzle/migrations"
