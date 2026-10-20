@@ -37,18 +37,35 @@ Om GitHub Actions geautomatiseerd deployments te laten uitvoeren, maken we een m
 
 ## 3. Cloudflare Pages Projecten Aanmaken
 
-We hebben twee Pages-projecten nodig: één voor de Testomgeving en één voor Productie.
+We hebben twee Pages-projecten nodig: één voor de Testomgeving (`hiking-companion-test`) en één voor Productie (`hiking-companion`). Dit kan via de terminal (snelst) of via het Cloudflare Dashboard.
 
-### A. Test Project: `hiking-companion-test`
-1. Ga in het Cloudflare Dashboard naar **Workers & Pages** -> **Create application** -> tabblad **Pages**.
-2. Kies voor **Upload assets** (Direct Upload, want GitHub Actions deployt via `wrangler pages deploy`).
-3. Projectnaam: `hiking-companion-test`.
-4. Klik op **Create project**. Het project is nu klaar om builds te ontvangen op `https://hiking-companion-test.pages.dev`.
+### Optie A: Direct via de terminal (Aanbevolen & Snelst)
+Voer de volgende commando's uit in de terminal (in de root van het project):
 
-### B. Productie Project: `hiking-companion`
-1. Herhaal de bovenstaande stappen.
-2. Projectnaam: `hiking-companion`.
-3. Klik op **Create project**. Dit project draait op `https://hiking-companion.pages.dev` (of je eigen hoofddomein).
+```bash
+# 1. Test project aanmaken
+npx wrangler pages project create hiking-companion-test --production-branch main
+
+# 2. Productie project aanmaken
+npx wrangler pages project create hiking-companion --production-branch main
+```
+*(Als je nog niet bent ingelogd in Wrangler opent Cloudflare automatisch een browserscherm om éénmalig in te loggen).*
+
+---
+
+### Optie B: Via het Cloudflare Dashboard
+Cloudflare heeft recent een vernieuwde **"Create an app"** interface geïntroduceerd.
+
+1. Ga in het Cloudflare Dashboard naar **Workers & Pages** -> **Create application**.
+2. **Nieuwe interface**:
+   - Klik op **Upload your static files** (het gele map-icoontje).
+   - Sleep de map `apps/web/dist` (of een tijdelijk bestandje) in het uploadvak.
+   - Klik op **Deploy** en geef het project de juiste naam:
+     - Voor Test: `hiking-companion-test` (beschikbaar op `https://hiking-companion-test.pages.dev`).
+     - Voor Productie: `hiking-companion` (beschikbaar op `https://hiking-companion.pages.dev`).
+3. **Klassieke Pages-interface (alternatief)**:
+   - Klik onderaan het scherm op de tekstlink: **`Continue to Pages`** (*"Need to use the legacy Pages workflow? Continue to Pages"*).
+   - Kies voor **Upload assets** (Direct Upload), vul de projectnaam in en klik op **Create project**.
 
 ---
 

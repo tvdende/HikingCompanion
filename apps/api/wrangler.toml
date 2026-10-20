@@ -14,7 +14,7 @@ name = "hiking-companion-api-test"
 [[env.test.d1_databases]]
 binding = "DB"
 database_name = "hiking-companion-db-test"
-database_id = "test-d1-db"
+database_id = "d7032b8e-7881-4543-9987-03ec8ed27591"
 migrations_dir = "drizzle/migrations"
 
 [env.production]
@@ -22,5 +22,5 @@ name = "hiking-companion-api-prod"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "hiking-companion-db-prod"
-database_id = "prod-d1-db"
+database_id = "6fba8f3e-4ba0-44f4-8014-b1f44644848a"
 migrations_dir = "drizzle/migrations"

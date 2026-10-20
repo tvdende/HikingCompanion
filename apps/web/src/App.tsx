@@ -176,7 +176,7 @@ export const App: React.FC = () => {
                   <div className="trail-stat-box">
                     <span className="stat-label">Punten</span>
                     <span id="stat-point-count" className="stat-num">
-                      {currentRoute.stages.reduce((acc, s) => acc + s.coordinates.length, 0)} pts
+                      {currentRoute.stages.reduce((acc: number, s) => acc + s.coordinates.length, 0)} pts
                     </span>
                   </div>
                 </div>

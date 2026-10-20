@@ -4,14 +4,14 @@
   "private": true,
   "description": "Progressive Web App with Planner and Companion modes for long-distance hikers",
   "workspaces": [
-    "apps/*",
     "packages/*",
+    "apps/*",
     "tests/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
     "test:unit": "npm run test --workspace=tests/unit",
     "test:e2e": "npm run test --workspace=tests/e2e",
     "export:pdf": "node scripts/export-pdf.mjs",
