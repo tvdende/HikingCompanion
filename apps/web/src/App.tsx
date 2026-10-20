@@ -5,8 +5,11 @@ import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
 import { LoginModal } from './components/LoginModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
+import { LandingPage } from './components/LandingPage';
+import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
+  const { user, isLoading } = useAuth();
   const [mode, setMode] = useState<AppMode>('planner');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -94,8 +97,16 @@ export const App: React.FC = () => {
         onOpenAdmin={() => setIsAdminModalOpen(true)}
       />
 
-      <input
-        id="gpx-file-input"
+      {/* Guest View: Landing Page & Feature Showcase */}
+      {!isLoading && !user && (
+        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+      )}
+
+      {/* Authenticated View: Map & Planning Workspace */}
+      {!isLoading && user && (
+        <>
+          <input
+            id="gpx-file-input"
         ref={fileInputRef}
         type="file"
         accept=".gpx,application/gpx+xml,text/xml"
@@ -278,8 +289,10 @@ export const App: React.FC = () => {
           </section>
         )}
       </main>
+    </>
+  )}
 
-      <LoginModal
+  <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication & User Session Flow', () => {
-  test('renders guest view with Inloggen button', async ({ page }) => {
+  test('renders guest view with Inloggen button and product showcase', async ({ page }) => {
     await page.route('/api/auth/me', async (route) => {
       await route.fulfill({ json: { user: null } });
     });
@@ -12,16 +12,23 @@ test.describe('Authentication & User Session Flow', () => {
     await expect(loginBtn).toBeVisible();
     await expect(loginBtn).toContainText('Inloggen');
     await expect(page.locator('#user-profile-trigger')).not.toBeVisible();
+
+    // Verify Guest Landing Page is shown instead of map
+    await expect(page.locator('#landing-page')).toBeVisible();
+    await expect(page.locator('#btn-hero-login')).toBeVisible();
+    await expect(page.locator('#planner-panel')).not.toBeVisible();
+    await expect(page.locator('#map-container')).not.toBeVisible();
   });
 
-  test('opens and closes OAuth login modal with provider choices', async ({ page }) => {
+  test('opens and closes OAuth login modal with provider choices from hero CTA', async ({ page }) => {
     await page.route('/api/auth/me', async (route) => {
       await route.fulfill({ json: { user: null } });
     });
 
     await page.goto('/');
 
-    await page.locator('#btn-open-login').click();
+    // Click Hero CTA button
+    await page.locator('#btn-hero-login').click();
 
     const modal = page.locator('#login-modal');
     await expect(modal).toBeVisible();
@@ -35,7 +42,7 @@ test.describe('Authentication & User Session Flow', () => {
     await expect(modal).not.toBeVisible();
   });
 
-  test('completes self-registration and switches to authenticated user profile', async ({ page }) => {
+  test('completes self-registration and switches from showcase to authenticated map workspace', async ({ page }) => {
     let currentUser: any = null;
 
     await page.route('/api/auth/me', async (route) => {
@@ -59,19 +66,27 @@ test.describe('Authentication & User Session Flow', () => {
 
     await page.goto('/');
 
+    // Initially on landing showcase
+    await expect(page.locator('#landing-page')).toBeVisible();
+    await expect(page.locator('#planner-panel')).not.toBeVisible();
+
     await page.locator('#btn-open-login').click();
     await page.locator('#btn-mock-user').click();
 
-    // Modal should close and header displays user profile
+    // Modal closes, header shows profile, and landing transitions to planner workspace
     await expect(page.locator('#login-modal')).not.toBeVisible();
     const profileTrigger = page.locator('#user-profile-trigger');
     await expect(profileTrigger).toBeVisible();
     await expect(page.locator('#header-user-name')).toHaveText('Jan Wandelaar');
     await expect(profileTrigger.locator('.role-tag.user')).toBeVisible();
     await expect(page.locator('#btn-open-login')).not.toBeVisible();
+
+    // Map and planner panel are now mounted
+    await expect(page.locator('#landing-page')).not.toBeVisible();
+    await expect(page.locator('#planner-panel')).toBeVisible();
   });
 
-  test('opens profile dropdown and executes logout', async ({ page }) => {
+  test('opens profile dropdown and executes logout, returning to guest showcase', async ({ page }) => {
     let currentUser: any = {
       id: 'user-planner-456',
       email: 'planner@hikingcompanion.nl',
@@ -109,8 +124,10 @@ test.describe('Authentication & User Session Flow', () => {
     // Click logout
     await page.locator('#btn-header-logout').click();
 
-    // Header resets to unauthenticated guest view
+    // Header resets to unauthenticated guest view and landing page returns
     await expect(page.locator('#btn-open-login')).toBeVisible();
     await expect(page.locator('#user-profile-trigger')).not.toBeVisible();
+    await expect(page.locator('#landing-page')).toBeVisible();
+    await expect(page.locator('#planner-panel')).not.toBeVisible();
   });
 });
