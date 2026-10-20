@@ -16,7 +16,8 @@
     "test:e2e": "npm run test --workspace=tests/e2e",
     "export:pdf": "node scripts/export-pdf.mjs",
     "db:users": "npm run db:users --workspace=apps/api",
-    "db:sessions": "npm run db:sessions --workspace=apps/api"
+    "db:sessions": "npm run db:sessions --workspace=apps/api",
+    "prepare": "node scripts/install-hooks.mjs"
   },
   "keywords": [
     "hiking",

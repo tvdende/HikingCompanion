@@ -4,6 +4,16 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - production
+          - both
 
 permissions:
   contents: read
@@ -11,6 +21,7 @@ permissions:
 jobs:
   deploy-test:
     name: Deploy to Test Environment
+    if: github.event_name == 'push' || inputs.environment == 'test' || inputs.environment == 'both'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -58,7 +69,16 @@ jobs:
 
   deploy-production:
     name: Deploy to Production Environment
-    needs: deploy-test
+    needs: [deploy-test]
+    # SAFETY GUARD:
+    # 1. Feature branches can NEVER deploy to production (must be on main branch).
+    # 2. Only runs if environment is 'production' or 'both', OR on push to main.
+    # 3. Gated in GitHub by setting Environment Protection Rules on 'production'.
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      (needs.deploy-test.result == 'success' || inputs.environment == 'production') &&
+      (github.event_name == 'push' || inputs.environment == 'production' || inputs.environment == 'both')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
