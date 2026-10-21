@@ -55,3 +55,19 @@ The frontend SHALL provide a dedicated "Companion Focus View":
 - GIVEN a hiker starts navigation mode with default settings
 - WHEN the phone reaches its normal screen timeout
 - THEN the screen turns off to conserve battery while background audio/haptic alerts remain active
+
+### Requirement: Offline Map Tile Region Downloader & Storage Management
+The system SHALL provide an offline map region download mechanism:
+- Compute tile (X, Y, Z) coordinates across zoom levels 10 to 15 covering the bounding box of the route plus a 2 km buffer
+- Display an estimate of the total number of tiles and download size in MB before initiating
+- Download tiles into Cache API / IndexedDB storage with progress updates (downloaded count and percentage)
+- Allow cancelling or pausing the download
+- The Service Worker SHALL intercept tile requests and return cached tiles when offline, ensuring MapLibre renders the vector map without network connectivity
+- The UI SHALL provide an "Offline kaarten beheren" drawer in settings/route details showing saved regions with size and a delete button to free space
+
+#### Scenario: Downloading an offline map region before a trek
+- GIVEN an active route in a mountainous area without cell coverage
+- WHEN the user clicks "Download kaart voor offline"
+- THEN the system calculates ~450 tiles (estimated 15 MB)
+- AND downloads and stores the tiles in Cache Storage with a visual progress bar
+- AND subsequently renders the map seamlessly when the device goes offline
