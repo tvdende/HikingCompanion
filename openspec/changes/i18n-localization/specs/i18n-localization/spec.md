@@ -6,16 +6,18 @@ Enable full bilingual operation of Hiking Companion in Dutch (default) and Engli
 
 ## Requirements
 
-### Requirement: Default Language & Language Selection
+### Requirement: Strict Dutch Default & Language Selection
 The frontend application SHALL:
-- Default to Dutch (`nl`) on initial launch
-- Provide a persistent language toggle in the header and settings allowing users to switch between Dutch (`nl`) and English (`en`)
-- Store the user's language preference in `localStorage` under `hiking_language` and synchronize with user profile if authenticated
+- Default strictly to Dutch (`nl`) for all visitors on initial launch, regardless of browser or OS language settings
+- Provide a visible language toggle button (`🇳🇱 NL` / `🇬🇧 EN`) in the navigation bar and settings
+- Persist the chosen language in `localStorage` under `hiking_language` and in user profile when authenticated
+- Apply translations strictly to all system and interface texts (buttons, dialogs, forms, alerts, tooltips, map controls); user-generated route titles, descriptions, and custom notes remain in the language entered by the creator
 
-#### Scenario: First-time visitor opens the app
-- GIVEN a new visitor opening the website
-- WHEN the app loads
-- THEN the interface displays all system texts in Dutch (`nl`)
+#### Scenario: First-time visitor opening the app on an English system
+- GIVEN a new visitor whose operating system or browser is set to English
+- WHEN the app loads for the first time
+- THEN all interface elements MUST be rendered in Dutch (`nl`)
+- AND only switch to English if the visitor explicitly clicks the `EN` language toggle
 
 #### Scenario: User switches to English
 - GIVEN the app is displaying Dutch texts

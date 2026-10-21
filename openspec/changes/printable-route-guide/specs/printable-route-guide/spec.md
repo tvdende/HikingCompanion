@@ -38,20 +38,21 @@ The frontend route editor SHALL provide input controls for all guidebook fields:
 - THEN the data is persisted via `PUT /api/routes/:id`
 - AND immediately reflected in the printable guide preview
 
-### Requirement: Multi-Page Printable Layout (`@media print`)
-The system SHALL render a dedicated `PrintableRouteGuide.tsx` component formatted for A4 printing and PDF export:
-- Cover page with title, subtitle, route overview statistics, and intro
-- Table of Contents
-- Route overview map snapshot, stage breakdown, and elevation profile
-- Surface breakdown chart (unpaved, gravel, paved percentages)
-- Navigation and battery instructions
-- Full attached packing list categorized into Uitrusting, Slapen, Koken, Kleding, etc.
-- Curated POI locations (Campings, Supermarkten, Bezienswaardigheden) with opening hours and active website links
-- Outdoorlicious recipe section
-- Nature, landscape, and wildlife overview
-- Vertragen mindfulness prompts
-- Emergency numbers and protocol card
-- Clean page breaks (`page-break-after: always`, `break-inside: avoid`) to prevent awkward splits
+### Requirement: Multi-Page Printable Layout & Structure (`@media print`)
+The system SHALL render a dedicated `PrintableRouteGuide.tsx` component formatted for A4 printing and PDF export, adhering to the structure of the Sallandse Heuvelrug guide:
+- **Cover Page**: Title, subtitle/location, route key metrics summary (Startpunt, Eindpunt, Aantal dagen, Aantal nachten, Km per dag, Periode, Beste periode) and introductory narrative.
+- **Table of Contents**: Automatic table of contents referencing all included sections with page jump anchors.
+- **Section Image Attachments**: Planners SHALL be able to provide optional image URLs for key guidebook sections (Cover photo, Omgeving/Landschap, Overnachten/Camping, Outdoorlicious recept), which are rendered with rounded border styling and captions as seen in the reference publication.
+- **Route Overview & Day Stages**: Route description per day/stage, static map snapshot, and elevation profile.
+- **Surface Breakdown**: Terrain breakdown table and segmented bar chart (unpaved, gravel, paved percentages).
+- **Navigation & Technology**: App guidance, offline caching recommendations, and battery conservation tips.
+- **Attached Packing List**: Full gear table categorized into Uitrusting, Slapen, Elektronica, Koken, Eetgerei, Afwas, Toiletspullen, Kleding, and Aantrekken.
+- **Curated POI Locations**: Direct address listings, opening hours, and clickable website links for Campings, Supermarkten, and Bezienswaardigheden.
+- **Outdoorlicious**: Meal strategies, ingredient lists, and step-by-step camp recipes (breakfast and dinner).
+- **Omgeving & Natuur**: Historical context, geology, flora, fauna, and points of interest.
+- **Vertragen**: Mindfulness prompts and pause suggestions.
+- **Noodnummers & Veiligheid**: 112, 0900-8844, animal rescue numbers, and distress call checklist.
+- **Pagination & Print Cleanliness**: Strict CSS print rules (`@page`, `page-break-before: always` for primary chapters, `break-inside: avoid` for cards, tables, and images).
 
 #### Scenario: User clicks "Print Gids"
 - GIVEN a route with completed guidebook metadata

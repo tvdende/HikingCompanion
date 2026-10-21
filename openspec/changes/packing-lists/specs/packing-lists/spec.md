@@ -57,14 +57,15 @@ The system SHALL compute aggregated gear metrics:
 - THEN `baseWeightGrams` MUST equal 8,000 grams
 - AND `wornWeightGrams` MUST equal 2,000 grams
 
-### Requirement: Linking Packing Lists to Routes
+### Requirement: Linking & Duplicating Packing Lists on Routes
 The system SHALL allow linking a packing list to a hiking route:
 - The route schema in D1 SHALL support an optional `packingListId` foreign key
-- When creating or editing a route, planners can select an existing packing list to attach
-- When viewing a route in the web app or generating a printable guide, the linked packing list MUST be loaded and displayed alongside the route details
+- When creating a new packing list, it SHALL always initialize as a clean, empty list where the user enters their own custom gear items (no forced boilerplate templates)
+- When viewing a route that has an attached packing list, any visitor or hiker SHALL be able to click a "Kopieer naar mijn paklijsten" (Duplicate to my packing lists) action
+- Duplicating a route's packing list creates an independent copy in the user's personal packing lists with all items unchecked, allowing the hiker to check off gear during packing without modifying the creator's master list
 
-#### Scenario: Opening a route with an attached packing list
-- GIVEN a route "Sallandse Heuvelrug 2-daagse" linked to packing list ID `pack-123`
-- WHEN a user opens the route details
-- THEN the UI displays a "Bekijk Paklijst" button
-- AND clicking it opens the categorized packing list with item checkmarks
+#### Scenario: Hiker duplicates a route's recommended packing list
+- GIVEN a route "Sallandse Heuvelrug 2-daagse" linked to creator's master packing list ID `pack-123`
+- WHEN an authenticated hiker clicks "Kopieer naar mijn paklijsten"
+- THEN a new personal packing list is created for that hiker containing identical items with `isPacked = false`
+- AND the hiker can check off items and adjust weights independently
