@@ -4,16 +4,16 @@
 - [ ] 1.2 Implement `calculateSurfaceBreakdown(segments)` in `packages/core/src/surface/breakdown.ts` calculating cumulative distances and percentage distributions summing strictly to 100%, verified with unit tests in `tests/unit/surface-breakdown.test.ts`.
 - [ ] 1.3 Export surface functions and types via `packages/core/src/index.ts` and verify package build.
 
-## 2. API Corridor Service & Caching
+## 2. API Corridor Service & D1 Persistence
 
 - [ ] 2.1 Implement `POST /api/routes/surface-analysis` in `apps/api/src/routes/surface.ts` with coordinate downsampling, Overpass corridor querying, and 5-second timeout fallback, verified with unit tests in `tests/unit/surface-api.test.ts`.
-- [ ] 2.2 Add caching for surface analysis responses in Cloudflare Worker keyed by route coordinates hash to prevent redundant external queries.
+- [ ] 2.2 Extend D1 `routes` schema with `surfaceBreakdown` JSON column so analysis results are permanently saved with the route, and persist analysis results when saving or updating routes.
 
-## 3. Frontend UI Component & Planner Integration
+## 3. Frontend UI Component & Map Layer Integration
 
-- [ ] 3.1 Create `SurfaceBreakdownCard.tsx` in `apps/web/src/components` rendering a multi-segment color bar (green for unpaved, amber for gravel, slate for paved) with kilometer distances and percentage badges.
-- [ ] 3.2 Add CSS styles in `apps/web/src/index.css` for the segmented surface bar, percentage pills, and loading skeleton.
-- [ ] 3.3 Integrate `SurfaceBreakdownCard` into `App.tsx` and the planner sidebar, automatically triggering surface analysis when a GPX file is loaded or modified.
+- [ ] 3.1 Create `SurfaceBreakdownCard.tsx` in `apps/web/src/components` rendering an on-demand "Analyseer ondergrond" button, multi-segment color bar (green for unpaved, amber for gravel, slate for paved), kilometer distances, and percentage badges.
+- [ ] 3.2 Add colored segment line rendering to MapLibre in `apps/web/src/components/Map.tsx` reflecting surface types along the trail track.
+- [ ] 3.3 Integrate `SurfaceBreakdownCard` into `App.tsx` and the route details panel, loading precomputed surface data instantly from saved routes or executing on-demand analysis.
 
 ## 4. Verification & Testing
 

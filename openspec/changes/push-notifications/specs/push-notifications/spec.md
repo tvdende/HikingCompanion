@@ -42,7 +42,10 @@ The PWA Service Worker SHALL:
 - WHEN the user taps the notification on their mobile screen
 - THEN the service worker opens the app directly at `/routes/route-123`
 
-### Requirement: In-App Notification Center
+### Requirement: In-App Notification Center & Contextual Permission Flow
 The frontend UI SHALL:
-- Provide an opt-in toggle in user settings to enable or disable push notifications
-- Show an in-app notification center bell displaying recent notifications and read/unread status
+- Request push notification permission contextually (e.g. when the user starts live navigation or inspects weather warnings), rather than bombarding users on initial page load.
+- Dispatch notifications specifically for:
+  - Severe weather alerts along active or saved routes (thunderstorms, heavy wind/rain)
+  - Route modifications and comments by trail creators
+- Show an in-app notification center bell in the navigation bar displaying recent notifications with read/unread status and direct links to the relevant route or alert.

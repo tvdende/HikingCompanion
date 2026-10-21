@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide a secure payment processing pipeline via Mollie (iDEAL, Bancontact, credit card, Apple Pay) for purchasing curated hike routes and unlocking Premium subscriptions, updating user entitlements and bypassing free-tier restrictions.
+Provide a secure payment processing pipeline via Mollie (with primary focus on iDEAL) for purchasing curated hike routes and unlocking Premium subscriptions, updating user entitlements and bypassing free-tier restrictions.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ The API SHALL provide `POST /api/payments/checkout`:
 - Accepts `itemId` (route ID or subscription plan ID), `itemType` (`'route'` | `'subscription'`), and an optional `redirectUrl`
 - Authenticates the purchasing user
 - Validates that the route is published as `'definitive'` and has a valid `priceEur` (> 0)
-- Communicates with Mollie Payments API to create a payment session
+- Communicates with Mollie Payments API to create a payment session configured for iDEAL payments
 - Returns the Mollie `checkoutUrl` for user redirect
 
 #### Scenario: Hiker initiates purchase of a 15-euro trail

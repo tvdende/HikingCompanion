@@ -38,9 +38,11 @@ The backend API SHALL expose:
 - `GET /api/poi/corridor`: accepts route polyline or coordinates and an optional `radiusMeters` (default: 500m, min: 100m, max: 5000m) and returns matching POIs within the corridor
 - `GET /api/poi/bounds`: accepts bounding box coordinates `minLon,minLat,maxLon,maxLat` and returns POIs within the view rectangle
 
+The frontend UI SHALL trigger corridor POI queries on-demand via a dedicated "Zoek voorzieningen" action button in the route panel to conserve mobile data and prevent unnecessary external API load.
+
 #### Scenario: Searching amenities within 500m of a hiking track
 - GIVEN a hiking route with coordinates spanning a 12 km mountain pass
-- WHEN the client requests `GET /api/poi/corridor?radius=500`
+- WHEN the user clicks "Zoek voorzieningen" in the route panel
 - THEN the API returns all POIs located within 500 meters of the trail track
 
 ### Requirement: Opening Hours & Resupply Warnings

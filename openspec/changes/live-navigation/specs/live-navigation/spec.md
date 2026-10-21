@@ -43,14 +43,15 @@ The system SHALL continuously calculate the cross-track error (perpendicular dis
 - WHEN the hiker wanders 65 meters away from the planned track
 - THEN the system triggers the off-trail warning with visual and haptic alerts
 
-### Requirement: Companion Focus View & Screen Wake Lock
+### Requirement: Companion Focus View & Battery-Saving Screen Management
 The frontend SHALL provide a dedicated "Companion Focus View":
-- Oversized touch targets (minimum 48x48px, optimized for gloves and wet screens)
+- Oversized touch targets (minimum 48x48px, optimized for gloves and outdoor use)
 - High-contrast outdoor display mode (AMOLED pitch black or high-contrast daylight)
-- Acquire a `WakeLock` via `navigator.wakeLock.request('screen')` while navigation is active to prevent the phone display from dimming or locking
+- Battery optimization: By default, the app SHALL allow the device display to time out and sleep normally to conserve battery during long hikes.
+- The UI SHALL provide an optional "Scherm altijd aan" (Keep screen on) toggle in the navigation header that requests a `WakeLock` via `navigator.wakeLock.request('screen')` only when explicitly enabled by the user.
 - Quick-access emergency button showing current GPS coordinates in decimal and UTM/MGRS format for mountain rescue
 
-#### Scenario: Screen stays awake during active navigation
-- GIVEN a hiker starts navigation mode
-- WHEN the screen would normally lock after 30 seconds of inactivity
-- THEN the Screen Wake Lock prevents display sleep as long as navigation remains active
+#### Scenario: Screen times out by default to save battery
+- GIVEN a hiker starts navigation mode with default settings
+- WHEN the phone reaches its normal screen timeout
+- THEN the screen turns off to conserve battery while background audio/haptic alerts remain active

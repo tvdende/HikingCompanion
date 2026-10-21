@@ -41,13 +41,23 @@ The system SHALL compute total distances in meters and kilometers, as well as th
 - **WHEN** surface segments are computed for a route
 - **THEN** the sum of individual category distances equals the total route distance, and the percentages total 100%
 
-### Requirement: Visual Surface Breakdown Display
-The system SHALL render a surface breakdown component in the route planner view presenting a segmented, multi-colored progress bar (green for unpaved, amber for gravel, slate for paved) and summary statistics.
+### Requirement: Visual Surface Breakdown Display & Map Layer
+The system SHALL render:
+- A surface breakdown component in the route panel displaying a segmented progress bar (green for unpaved, amber for gravel, slate for paved), kilometers, and percentage share.
+- An on-demand action button ("Analyseer ondergrond") in the route panel that triggers the analysis.
+- Multi-colored route segments directly on the MapLibre canvas when surface breakdown data is present (green = unpaved, orange = gravel, slate/gray = paved).
 
-#### Scenario: Surface breakdown rendered for loaded route
-- **WHEN** a route with surface breakdown metrics is active in the planner
-- **THEN** the UI displays the segmented color bar and lists kilometers and percentages for each category
+#### Scenario: Surface breakdown rendered on map and sidebar
+- **WHEN** surface breakdown data is available for a route
+- **THEN** the UI displays the segmented statistics in the sidebar
+- **AND** the route line on the map reflects the corresponding surface colors along the trail
 
-#### Scenario: Surface breakdown loading and skeleton state
-- **WHEN** surface analysis is in progress for a newly imported or modified route
-- **THEN** the UI displays a subtle loading skeleton without blocking map interaction
+### Requirement: Surface Analysis Persistence in Database
+The system SHALL persist the computed surface breakdown metrics and segment classifications with the route record in Cloudflare D1:
+- Once analyzed, the result is saved in the database alongside the route coordinates
+- When any user opens or views the route, the precomputed surface breakdown is loaded instantly from the database without re-querying external OpenStreetMap APIs
+
+#### Scenario: Viewing a previously analyzed route
+- **GIVEN** a route that has previously been analyzed and saved
+- **WHEN** a user opens the route from the library or via share link
+- **THEN** the surface breakdown and colored map segments are rendered immediately without issuing a new external analysis request
