@@ -25,6 +25,7 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
       });
     });
     await page.goto('/');
+    await expect(page.locator('#btn-import-gpx')).toBeVisible();
   });
 
   test('imports a valid GPX trail, renders route metrics and map layers', async ({ page }) => {
@@ -70,7 +71,8 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
     await page.locator('#btn-export-gpx').click();
     const download = await downloadPromise;
 
-    expect(download.suggestedFilename()).toBe('Veluwe Heuvelrug Trail.gpx');
+    // WebKit/Safari replaces spaces in download suggested filenames with underscores
+    expect(download.suggestedFilename()).toMatch(/^Veluwe[ _]Heuvelrug[ _]Trail\.gpx$/);
   });
 
   test('displays route metrics in Companion HUD and clears route cleanly', async ({ page }) => {
