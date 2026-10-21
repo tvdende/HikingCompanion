@@ -80,7 +80,53 @@ routingRoutes.post('/route', async (c) => {
     });
   }
 
-  // OSRM foot routing format: lng,lat;lng,lat
+  // 1. Try BRouter trekking/hiking profile (high-quality OpenStreetMap foot trails)
+  const brouterLonLats = coords.map((pt) => `${pt.lng},${pt.lat}`).join('|');
+  const brouterEndpoint = `https://brouter.de/brouter?lonlats=${brouterLonLats}&profile=trekking&format=geojson`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(brouterEndpoint, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'HikingCompanion/0.1.0',
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      const feature = data.features?.[0];
+      if (feature && feature.geometry && Array.isArray(feature.geometry.coordinates)) {
+        const rawCoords: [number, number, ...number[]][] = feature.geometry.coordinates;
+        const formattedCoords: Coordinate[] = rawCoords.map(([lng, lat, ele]) => ({
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lng.toFixed(6)),
+          elevation: typeof ele === 'number' ? Number(ele.toFixed(1)) : undefined,
+        }));
+
+        const distanceMeters = Math.round(Number(feature.properties?.['track-length'] || 0));
+        const durationSeconds = Math.round(
+          Number(feature.properties?.['total-time'] || (distanceMeters / 1.34))
+        );
+
+        return c.json({
+          success: true,
+          profile: 'foot',
+          isFallback: false,
+          coordinates: formattedCoords,
+          distanceMeters,
+          durationSeconds,
+        });
+      }
+    }
+  } catch (brouterErr) {
+    console.warn('BRouter routing failed, attempting fallback...', brouterErr);
+  }
+
+  // 2. Fallback to OSRM foot routing
   const coordString = coords.map((pt) => `${pt.lng},${pt.lat}`).join(';');
   const osrmEndpoint = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
 
@@ -96,41 +142,39 @@ routingRoutes.post('/route', async (c) => {
     });
     clearTimeout(timeoutId);
 
-    if (!res.ok) {
-      throw new Error(`Routing provider returned HTTP ${res.status}`);
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const geojsonCoords: [number, number][] = route.geometry.coordinates;
+        const formattedCoords: Coordinate[] = geojsonCoords.map(([lng, lat]) => ({
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lng.toFixed(6)),
+        }));
+
+        return c.json({
+          success: true,
+          profile: 'foot',
+          isFallback: false,
+          coordinates: formattedCoords,
+          distanceMeters: Math.round(route.distance),
+          durationSeconds: Math.round(route.duration),
+        });
+      }
     }
-
-    const data = (await res.json()) as any;
-    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-      throw new Error(`OSRM routing code: ${data.code || 'None'}`);
-    }
-
-    const route = data.routes[0];
-    const geojsonCoords: [number, number][] = route.geometry.coordinates;
-    const formattedCoords: Coordinate[] = geojsonCoords.map(([lng, lat]) => ({
-      lat: Number(lat.toFixed(6)),
-      lng: Number(lng.toFixed(6)),
-    }));
-
-    return c.json({
-      success: true,
-      profile: 'foot',
-      isFallback: false,
-      coordinates: formattedCoords,
-      distanceMeters: Math.round(route.distance),
-      durationSeconds: Math.round(route.duration),
-    });
-  } catch (err: any) {
-    // Graceful fallback to geodesic straight line
-    const fallback = generateStraightLine(coords);
-    return c.json({
-      success: true,
-      profile: 'foot',
-      isFallback: true,
-      warning: 'Routing service unavailable. Path rendered via straight-line fallback.',
-      coordinates: fallback.coordinates,
-      distanceMeters: fallback.distanceMeters,
-      durationSeconds: fallback.durationSeconds,
-    });
+  } catch {
+    // Continue to straight-line fallback
   }
+
+  // 3. Graceful fallback to geodesic straight line
+  const fallback = generateStraightLine(coords);
+  return c.json({
+    success: true,
+    profile: 'foot',
+    isFallback: true,
+    warning: 'Routing service unavailable. Path rendered via straight-line fallback.',
+    coordinates: fallback.coordinates,
+    distanceMeters: fallback.distanceMeters,
+    durationSeconds: fallback.durationSeconds,
+  });
 });

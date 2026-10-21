@@ -6,8 +6,10 @@ import {
   moveWaypoint,
   reverseWaypoints,
   flattenRouteCoordinates,
+  extractWaypointsFromRoute,
   type RouteWaypoint,
   type RouteSegment,
+  type HikeRoute,
 } from '@hiking-companion/core';
 
 describe('Route Editing Domain Utilities', () => {
@@ -135,6 +137,57 @@ describe('Route Editing Domain Utilities', () => {
       expect(coords[0]).toEqual({ lat: 52.0907, lng: 5.1214 });
       expect(coords[2]).toEqual({ lat: 52.1, lng: 5.13 });
       expect(coords[4]).toEqual({ lat: 52.11, lng: 5.14 });
+    });
+  });
+
+  describe('extractWaypointsFromRoute', () => {
+    it('returns empty waypoints and segments when route has no coordinates', () => {
+      const emptyRoute: HikeRoute = {
+        id: 'test-empty',
+        name: 'Empty Route',
+        stages: [],
+        totalDistanceKm: 0,
+        elevationGainM: 0,
+        elevationLossM: 0,
+        estimatedDurationMinutes: 0,
+      };
+      const result = extractWaypointsFromRoute(emptyRoute);
+      expect(result.waypoints).toHaveLength(0);
+      expect(result.segments).toHaveLength(0);
+    });
+
+    it('extracts waypoints and segments from multi-point route stages', () => {
+      const route: HikeRoute = {
+        id: 'test-route',
+        name: 'Track Route',
+        stages: [
+          {
+            id: 'stage-1',
+            name: 'Stage 1',
+            coordinates: [
+              { lat: 52.0, lng: 5.0, elevation: 10 },
+              { lat: 52.01, lng: 5.01, elevation: 12 },
+              { lat: 52.02, lng: 5.02, elevation: 15 },
+              { lat: 52.03, lng: 5.03, elevation: 18 },
+              { lat: 52.04, lng: 5.04, elevation: 20 },
+            ],
+            distanceKm: 4.5,
+            elevationGainM: 10,
+            elevationLossM: 0,
+          },
+        ],
+        totalDistanceKm: 4.5,
+        elevationGainM: 10,
+        elevationLossM: 0,
+        estimatedDurationMinutes: 60,
+      };
+
+      const result = extractWaypointsFromRoute(route, 3);
+      expect(result.waypoints).toHaveLength(3);
+      expect(result.waypoints[0].name).toBe('Start');
+      expect(result.waypoints[2].name).toBe('Finish');
+      expect(result.segments).toHaveLength(2);
+      expect(result.segments[0].coordinates.length).toBeGreaterThan(1);
     });
   });
 });

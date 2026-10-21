@@ -98,6 +98,17 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       map.on('click', (e) => {
         if (!isEditingRef.current) return;
+        const target = e.originalEvent?.target as HTMLElement | null;
+        if (
+          target &&
+          (target.closest('.editor-waypoint-marker') ||
+            target.closest('.route-split-handle') ||
+            target.closest('.maplibregl-popup') ||
+            target.closest('.maplibregl-marker'))
+        ) {
+          return;
+        }
+
         if (isMarkerInteractingRef.current) {
           isMarkerInteractingRef.current = false;
           return;
@@ -237,9 +248,6 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         e.stopPropagation();
         isMarkerInteractingRef.current = true;
       });
-      markerEl.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-      });
 
       const marker = new maplibregl.Marker({
         element: markerEl,
@@ -250,6 +258,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       // Drag events
       marker.on('dragstart', () => {
+        isMarkerInteractingRef.current = true;
+      });
+      marker.on('drag', () => {
         isMarkerInteractingRef.current = true;
       });
       marker.on('dragend', () => {

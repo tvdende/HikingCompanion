@@ -10,6 +10,7 @@ import {
   reverseWaypoints,
   flattenRouteCoordinates,
   calculateHaversineDistanceKm,
+  extractWaypointsFromRoute,
 } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
@@ -124,10 +125,12 @@ export const App: React.FC = () => {
               if (res.ok) {
                 const data = await res.json();
                 if (data.coordinates && data.coordinates.length > 0) {
-                  segmentCoords = data.coordinates.map(([lng, lat]: [number, number]) => ({
-                    lng,
-                    lat,
-                  }));
+                  segmentCoords = data.coordinates.map((item: any) => {
+                    if (Array.isArray(item)) {
+                      return { lng: item[0], lat: item[1] };
+                    }
+                    return { lng: item.lng, lat: item.lat, elevation: item.elevation };
+                  });
                   segmentDistMeters =
                     data.distanceMeters ||
                     calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
@@ -364,10 +367,15 @@ export const App: React.FC = () => {
       const parsedRoute = parseGpx(text, defaultTitle);
       setCurrentRoute(parsedRoute);
       setActiveSavedRouteId(null);
-      setWaypoints([]);
-      setHistory([[]]);
+
+      // Extract draggable waypoints from the GPX track so points can be moved
+      const { waypoints: extractedWps, segments: extractedSegments } =
+        extractWaypointsFromRoute(parsedRoute);
+      setWaypoints(extractedWps);
+      setSegments(extractedSegments);
+      setHistory([extractedWps]);
       setHistoryIndex(0);
-      setIsEditing(false);
+      setIsEditing(true);
     } catch (err: any) {
       console.error('GPX parse error:', err);
       setFileError(err.message || 'Kon het GPX bestand niet verwerken.');
@@ -595,6 +603,36 @@ export const App: React.FC = () => {
                         <span>GPX Bestand</span>
                       </button>
                     </div>
+
+                    <button
+                      id="btn-edit-active-route"
+                      type="button"
+                      className={`btn ${isEditing ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                      style={{
+                        width: '100%',
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                      }}
+                      onClick={() => {
+                        if (!isEditing && waypoints.length === 0 && currentRoute) {
+                          const { waypoints: extractedWps, segments: extractedSegments } =
+                            extractWaypointsFromRoute(currentRoute);
+                          setWaypoints(extractedWps);
+                          setSegments(extractedSegments);
+                          setHistory([extractedWps]);
+                          setHistoryIndex(0);
+                        }
+                        setIsEditing((prev) => !prev);
+                      }}
+                    >
+                      <span>{isEditing ? '✓' : '✏️'}</span>
+                      <span>
+                        {isEditing ? 'Bewerken afronden' : 'Route bewerken / punten slepen'}
+                      </span>
+                    </button>
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                       <button

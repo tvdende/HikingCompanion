@@ -1898,6 +1898,12 @@ html, body, #root {
   border: 2px solid #ffffff;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
+  touch-action: none;
+}
+
+.waypoint-badge {
+  pointer-events: none;
+  user-select: none;
 }
 
 .editor-waypoint-marker:hover {
