@@ -17,7 +17,13 @@ Preparing proper gear is essential for safe, comfortable hiking. Carrying too mu
 - **Item Weight & Packed State**: Each item tracks name, category, quantity, weight in grams, whether it is worn or in-pack, and packed checkbox state.
 - **Total Weight Calculation**: Automatic tallying of Base Weight (pack weight excluding consumables), Consumables (food/water), Worn Weight, and Total Pack Weight.
 - **Inpakmodus (Multi-Day Packing Checklist Mode)**: A dedicated packing screen for a chosen route allowing hikers to check off items as they pack their backpack. Checked states (`isPacked: boolean`) are saved immediately and persistently in D1 so hikers can pack gradually over multiple days without losing progress, complete with progress percentage ("24/38 ingepakt · 63%"), "Alleen nog inpakken" filter, and a reset toggle.
-- **LighterPack & Packstack / StackPack Importer**: Ingest packing lists directly from external ultralight gear tools (LighterPack CSV/JSON/URL and Packstack CSV/JSON). Automatically converts imperial units (oz, lbs) to grams, maps custom categories to standard outdoor categories, flags worn gear, and attaches the imported list to the hike route.
+- **Multi-Platform Gear Importers (LighterPack, Packwizard, Packstack & Spreadsheets)**: Ingest packing lists directly from the most popular hiking and ultralight gear services:
+  - **LighterPack**: CSV export text or JSON / public share URL
+  - **Packwizard**: CSV export and share data
+  - **Packstack**: CSV / JSON export
+  - **GearGrams & Don't Forget The Spoon**: Standard CSV gear exports
+  - **Google Sheets & Microsoft Excel**: Flexible CSV / TSV import with smart auto-detection of column headers (`Category`, `Item`, `Weight`, `Unit`, `Qty`, `Worn`, `Consumable`)
+  - Automatically converts imperial units (oz, lbs) to grams, maps custom categories to standard outdoor categories, flags worn gear, and attaches the imported list to the hike route.
 - **Full CRUD API & D1 Persistence**: Endpoints in `apps/api`:
   - `GET /api/packing-lists`: List user's packing lists
   - `POST /api/packing-lists`: Create a new packing list

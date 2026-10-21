@@ -84,10 +84,13 @@ The system SHALL provide a dedicated "Inpakmodus" (Packing Mode) accessible dire
 - THEN the tent and sleeping gear remain checked as packed
 - AND the hiker can continue checking off clothing and food items
 
-### Requirement: LighterPack & Packstack External List Import
-The system SHALL support importing gear lists directly from external ultralight planning platforms:
+### Requirement: Multi-Platform External Gear List Import
+The system SHALL support importing gear lists directly from external hiking and ultralight gear planning tools:
 - **LighterPack**: Accepts exported CSV text or public LighterPack URL / JSON
+- **Packwizard**: Accepts Packwizard CSV export text or JSON
 - **Packstack / StackPack**: Accepts exported CSV or JSON data
+- **GearGrams & Don't Forget The Spoon**: Accepts standard gear CSV exports
+- **Spreadsheets (Google Sheets & Excel)**: Accepts CSV / TSV text with smart fuzzy detection of standard header columns (`Category/Categorie`, `Name/Item/Omschrijving`, `Weight/Gewicht`, `Unit/Eenheid`, `Qty/Aantal`, `Worn/Gedragen`, `Consumable/Verbruik`)
 - The importer SHALL automatically:
   - Map external categories to standard categories (`uitrusting`, `slapen`, `koken`, `kleding`, etc.)
   - Convert imperial units (oz, lbs) to metric grams (`1 oz = 28.3495 g`, `1 lb = 453.592 g`)
@@ -95,8 +98,8 @@ The system SHALL support importing gear lists directly from external ultralight 
   - Detect consumable items (food, fuel) and assign `isConsumable = true`
   - Create the packing list and optionally link it immediately to the active route
 
-#### Scenario: Importing a LighterPack CSV export
-- GIVEN a LighterPack CSV file with columns `Category,Item Name,Description,Qty,Weight,Unit,Worn,Consumable`
-- WHEN the user uploads or pastes the CSV via the import modal
-- THEN the system parses all items, converts weights to integer grams, and generates a new packing list
+#### Scenario: Importing a Packwizard or LighterPack CSV export
+- GIVEN a CSV export from Packwizard, LighterPack, or Google Sheets
+- WHEN the user uploads or pastes the CSV text via the import modal
+- THEN the system automatically detects column mappings, converts weights to integer grams, and generates a new packing list
 - AND links it to the route upon confirmation
