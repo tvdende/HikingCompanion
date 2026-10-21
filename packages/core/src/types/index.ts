@@ -44,9 +44,22 @@ export interface RouteElevationMetrics {
   maxElevationMeters?: number;
 }
 
+export type RouteStatus = 'draft' | 'definitive';
+
+export interface RouteMetadata {
+  description?: string;
+  location?: string;
+  status?: RouteStatus;
+  priceEur?: number;
+}
+
 export interface HikeRoute {
   id: string;
   title: string;
+  description?: string;
+  location?: string;
+  status?: RouteStatus;
+  priceEur?: number;
   totalDistanceKm: number;
   stages: HikeStage[];
   surfaceBreakdown?: SurfaceBreakdown;

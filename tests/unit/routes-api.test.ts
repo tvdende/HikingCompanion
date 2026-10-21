@@ -225,4 +225,131 @@ describe('Routes API Endpoints (/api/routes)', () => {
     );
     expect(getDeletedRes.status).toBe(404);
   });
+
+  it('supports status and search filtering, and partial metadata updates', async () => {
+    // 1. Create a draft route
+    const draftRes = await app.request(
+      '/api/routes',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `hiking_session=${userToken}`,
+        },
+        body: JSON.stringify({
+          title: 'Veluwe Concept Etappe',
+          description: 'Ruwe route door het bos',
+          location: 'Gelderland, Veluwe',
+          status: 'draft',
+          priceEur: 0,
+          coordinates: [{ lat: 52.1, lng: 5.8 }],
+        }),
+      },
+      { DB: testEnv.d1 }
+    );
+    expect(draftRes.status).toBe(201);
+    const { route: draftRoute } = (await draftRes.json()) as any;
+    expect(draftRoute.status).toBe('draft');
+    expect(draftRoute.priceEur).toBe(0);
+    expect(draftRoute.location).toBe('Gelderland, Veluwe');
+
+    // 2. Create a definitive route
+    const defRes = await app.request(
+      '/api/routes',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `hiking_session=${userToken}`,
+        },
+        body: JSON.stringify({
+          title: 'Drenthe Heidetocht',
+          description: 'Volledig gemarkeerd en getest',
+          location: 'Drenthe, Dwingelderveld',
+          status: 'definitive',
+          priceEur: 3.5,
+          coordinates: [{ lat: 52.8, lng: 6.4 }],
+        }),
+      },
+      { DB: testEnv.d1 }
+    );
+    expect(defRes.status).toBe(201);
+    const { route: defRoute } = (await defRes.json()) as any;
+    expect(defRoute.status).toBe('definitive');
+    expect(defRoute.priceEur).toBe(3.5);
+
+    // 3. Filter by status: draft
+    const draftListRes = await app.request(
+      '/api/routes?status=draft',
+      {
+        method: 'GET',
+        headers: { Cookie: `hiking_session=${userToken}` },
+      },
+      { DB: testEnv.d1 }
+    );
+    const draftListData = (await draftListRes.json()) as any;
+    expect(draftListData.routes).toHaveLength(1);
+    expect(draftListData.routes[0].id).toBe(draftRoute.id);
+
+    // 4. Filter by status: definitive
+    const defListRes = await app.request(
+      '/api/routes?status=definitive',
+      {
+        method: 'GET',
+        headers: { Cookie: `hiking_session=${userToken}` },
+      },
+      { DB: testEnv.d1 }
+    );
+    const defListData = (await defListRes.json()) as any;
+    expect(defListData.routes).toHaveLength(1);
+    expect(defListData.routes[0].id).toBe(defRoute.id);
+
+    // 5. Search query matching title or location
+    const searchRes = await app.request(
+      '/api/routes?search=Heidetocht',
+      {
+        method: 'GET',
+        headers: { Cookie: `hiking_session=${userToken}` },
+      },
+      { DB: testEnv.d1 }
+    );
+    const searchData = (await searchRes.json()) as any;
+    expect(searchData.routes).toHaveLength(1);
+    expect(searchData.routes[0].title).toBe('Drenthe Heidetocht');
+
+    // 6. Partial metadata update via PUT /api/routes/:id (promoting draft to definitive, adding price)
+    const updateRes = await app.request(
+      `/api/routes/${draftRoute.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `hiking_session=${userToken}`,
+        },
+        body: JSON.stringify({
+          status: 'definitive',
+          priceEur: 1.99,
+          description: 'Nu definitief geverifieerd!',
+        }),
+      },
+      { DB: testEnv.d1 }
+    );
+    expect(updateRes.status).toBe(200);
+
+    // Verify GET /api/routes/:id retains original coordinates and has updated metadata
+    const getUpdatedRes = await app.request(
+      `/api/routes/${draftRoute.id}`,
+      {
+        method: 'GET',
+        headers: { Cookie: `hiking_session=${userToken}` },
+      },
+      { DB: testEnv.d1 }
+    );
+    const updatedData = (await getUpdatedRes.json()) as any;
+    expect(updatedData.route.status).toBe('definitive');
+    expect(updatedData.route.priceEur).toBe(1.99);
+    expect(updatedData.route.description).toBe('Nu definitief geverifieerd!');
+    expect(updatedData.route.coordinates).toHaveLength(1);
+    expect(updatedData.route.coordinates[0]).toEqual({ lat: 52.1, lng: 5.8 });
+  });
 });

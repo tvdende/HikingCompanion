@@ -51,3 +51,4 @@ docs/_temp*
 docs/temp*
 tmp/
 scratch/
+*temp*

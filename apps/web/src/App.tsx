@@ -1,7 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { AppMode, HikeRoute, Coordinate, RouteWaypoint, RouteSegment, RoutingMode } from '@hiking-companion/core';
+import type {
+  AppMode,
+  HikeRoute,
+  Coordinate,
+  RouteWaypoint,
+  RouteSegment,
+  RoutingMode,
+  RouteStatus,
+} from '@hiking-companion/core';
 import {
   parseGpx,
+  stitchGpxRoutes,
   serializeToGpx,
   interpolateStraightLine,
   insertWaypoint,
@@ -18,8 +27,9 @@ import { LoginModal } from './components/LoginModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
 import { LandingPage } from './components/LandingPage';
 import { RouteEditorToolbar } from './components/RouteEditorToolbar';
-import { SaveRouteModal } from './components/SaveRouteModal';
+import { SaveRouteModal, type SaveRouteData } from './components/SaveRouteModal';
 import { RouteLibraryModal } from './components/RouteLibraryModal';
+import { RouteMetadataModal } from './components/RouteMetadataModal';
 import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
@@ -29,6 +39,7 @@ export const App: React.FC = () => {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
 
   // Route & Editor State
   const [currentRoute, setCurrentRoute] = useState<HikeRoute | null>(null);
@@ -44,6 +55,7 @@ export const App: React.FC = () => {
   // File Upload State
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isAppendMode, setIsAppendMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to commit waypoints change to history stack
@@ -75,6 +87,10 @@ export const App: React.FC = () => {
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
           title: currentRoute?.title || 'Nieuwe Route',
+          description: currentRoute?.description,
+          location: currentRoute?.location,
+          status: currentRoute?.status || 'draft',
+          priceEur: currentRoute?.priceEur ?? 0,
           totalDistanceKm: 0,
           stages: [
             {
@@ -172,6 +188,10 @@ export const App: React.FC = () => {
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
           title: currentRoute?.title || 'Nieuwe Route',
+          description: currentRoute?.description,
+          location: currentRoute?.location,
+          status: currentRoute?.status || 'draft',
+          priceEur: currentRoute?.priceEur ?? 0,
           totalDistanceKm: distKm,
           stages: [
             {
@@ -264,11 +284,15 @@ export const App: React.FC = () => {
   };
 
   // Route Persistence Actions
-  const handleSaveRoute = async (title: string) => {
+  const handleSaveRoute = async (saveData: SaveRouteData) => {
     if (!currentRoute) return;
 
     const payload = {
-      title,
+      title: saveData.title,
+      description: saveData.description,
+      location: saveData.location,
+      status: saveData.status || 'draft',
+      priceEur: saveData.priceEur ?? 0,
       totalDistanceKm: currentRoute.totalDistanceKm,
       coordinates: currentRoute.stages[0]?.coordinates || [],
       waypoints,
@@ -294,7 +318,19 @@ export const App: React.FC = () => {
 
     const data = await res.json();
     setActiveSavedRouteId(data.route.id);
-    setCurrentRoute((prev) => (prev ? { ...prev, id: data.route.id, title } : null));
+    setCurrentRoute((prev) =>
+      prev
+        ? {
+            ...prev,
+            id: data.route.id,
+            title: saveData.title,
+            description: saveData.description,
+            location: saveData.location,
+            status: saveData.status || 'draft',
+            priceEur: saveData.priceEur ?? 0,
+          }
+        : null
+    );
   };
 
   const handleLoadSavedRoute = async (routeId: string) => {
@@ -312,6 +348,10 @@ export const App: React.FC = () => {
     const loadedRoute: HikeRoute = {
       id: r.id,
       title: r.title,
+      description: r.description,
+      location: r.location,
+      status: r.status as RouteStatus,
+      priceEur: r.priceEur,
       totalDistanceKm: r.totalDistanceKm,
       stages: r.stages || [
         {
@@ -323,8 +363,8 @@ export const App: React.FC = () => {
         },
       ],
       elevationMetrics: r.elevationMetrics,
-      createdAt: typeof r.createdAt === 'string' ? r.createdAt : new Date(r.createdAt).toISOString(),
-      updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : new Date(r.updatedAt).toISOString(),
+      createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
     };
 
     setCurrentRoute(loadedRoute);
@@ -358,35 +398,51 @@ export const App: React.FC = () => {
     setIsEditing(true);
   };
 
-  // GPX File handling
-  const handleGpxFile = async (file: File) => {
+  // Multi-GPX File handling and Track Stitching
+  const handleGpxFiles = async (files: File[], append = false) => {
+    if (!files || files.length === 0) return;
     setFileError(null);
+
     try {
-      const text = await file.text();
-      const defaultTitle = file.name.replace(/\.gpx$/i, '');
-      const parsedRoute = parseGpx(text, defaultTitle);
-      setCurrentRoute(parsedRoute);
+      const parsedRoutes: HikeRoute[] = [];
+      for (const file of files) {
+        const text = await file.text();
+        const defaultTitle = file.name.replace(/\.gpx$/i, '');
+        parsedRoutes.push(parseGpx(text, defaultTitle));
+      }
+
+      let finalRoute: HikeRoute;
+      if (append && currentRoute) {
+        finalRoute = stitchGpxRoutes([currentRoute, ...parsedRoutes]);
+      } else if (parsedRoutes.length === 1) {
+        finalRoute = parsedRoutes[0];
+      } else {
+        finalRoute = stitchGpxRoutes(parsedRoutes);
+      }
+
+      setCurrentRoute(finalRoute);
       setActiveSavedRouteId(null);
 
-      // Extract draggable waypoints from the GPX track so points can be moved
+      // Extract draggable waypoints from the stitched track
       const { waypoints: extractedWps, segments: extractedSegments } =
-        extractWaypointsFromRoute(parsedRoute);
+        extractWaypointsFromRoute(finalRoute);
       setWaypoints(extractedWps);
       setSegments(extractedSegments);
       setHistory([extractedWps]);
       setHistoryIndex(0);
       setIsEditing(true);
     } catch (err: any) {
-      console.error('GPX parse error:', err);
-      setFileError(err.message || 'Kon het GPX bestand niet verwerken.');
+      console.error('GPX parse/stitching error:', err);
+      setFileError(err.message || 'Kon de GPX bestanden niet verwerken of aan elkaar koppelen.');
     }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleGpxFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleGpxFiles(files, isAppendMode);
     }
+    setIsAppendMode(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -404,12 +460,24 @@ export const App: React.FC = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingFile(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith('.gpx') || file.type.includes('xml'))) {
-      handleGpxFile(file);
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.name.endsWith('.gpx') || f.type.includes('xml')
+    );
+    if (files.length > 0) {
+      handleGpxFiles(files, false);
     } else {
       setFileError('Alleen .gpx bestanden worden ondersteund.');
     }
+  };
+
+  const triggerAppendGpx = () => {
+    setIsAppendMode(true);
+    fileInputRef.current?.click();
+  };
+
+  const triggerNewGpx = () => {
+    setIsAppendMode(false);
+    fileInputRef.current?.click();
   };
 
   const handleExportGpx = () => {
@@ -456,6 +524,7 @@ export const App: React.FC = () => {
             id="gpx-file-input"
             ref={fileInputRef}
             type="file"
+            multiple
             accept=".gpx,application/gpx+xml,text/xml"
             style={{ display: 'none' }}
             onChange={handleFileInputChange}
@@ -496,8 +565,8 @@ export const App: React.FC = () => {
               <div id="drop-zone-overlay" className="drag-drop-overlay">
                 <div className="drop-zone-card">
                   <span className="drop-icon">📂</span>
-                  <h3>Laat je GPX bestand hier los</h3>
-                  <p>De route wordt direct op de kaart getoond</p>
+                  <h3>Laat je GPX bestand(en) hier los</h3>
+                  <p>Meerdere bestanden worden automatisch aan elkaar gekoppeld tot één route</p>
                 </div>
               </div>
             )}
@@ -535,10 +604,47 @@ export const App: React.FC = () => {
                   <div id="loaded-route-card" className="route-summary-card">
                     <div className="route-header-row">
                       <div>
-                        <span className="route-badge">Actieve Route</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '4px' }}>
+                          <span className="route-badge">Actieve Route</span>
+                          <span
+                            id="active-route-status-badge"
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '1px 6px',
+                              borderRadius: '99px',
+                              fontWeight: 700,
+                              background:
+                                currentRoute.status === 'definitive'
+                                  ? 'rgba(34, 197, 94, 0.2)'
+                                  : 'rgba(234, 179, 8, 0.2)',
+                              color:
+                                currentRoute.status === 'definitive' ? '#4ade80' : '#facc15',
+                            }}
+                          >
+                            {currentRoute.status === 'definitive' ? '🟢 Definitief' : '🟡 Concept'}
+                          </span>
+                          {currentRoute.priceEur !== undefined && currentRoute.priceEur > 0 && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '1px 6px',
+                                borderRadius: '99px',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: 'var(--text-main)',
+                              }}
+                            >
+                              €{currentRoute.priceEur.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                         <h3 id="route-title" className="route-card-title">
                           {currentRoute.title}
                         </h3>
+                        {currentRoute.location && (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--primary-400)', margin: '2px 0 0' }}>
+                            📍 {currentRoute.location}
+                          </p>
+                        )}
                       </div>
                       <button
                         id="btn-clear-route"
@@ -565,9 +671,9 @@ export const App: React.FC = () => {
                         </span>
                       </div>
                       <div className="trail-stat-box">
-                        <span className="stat-label">Dalen</span>
-                        <span id="stat-elevation-loss" className="stat-num text-loss">
-                          -{currentRoute.elevationMetrics?.elevationLossMeters ?? 0} m
+                        <span className="stat-label">Etappes</span>
+                        <span id="stat-stage-count" className="stat-num">
+                          {currentRoute.stages.length}
                         </span>
                       </div>
                       <div className="trail-stat-box">
@@ -594,45 +700,57 @@ export const App: React.FC = () => {
                         <span>Download GPX</span>
                       </button>
                       <button
-                        id="btn-change-gpx"
+                        id="btn-append-gpx"
                         type="button"
                         className="secondary-gpx-btn"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={triggerAppendGpx}
+                        title="Extra GPX aan deze route toevoegen en koppelen"
                       >
-                        <span>📂</span>
-                        <span>GPX Bestand</span>
+                        <span>➕</span>
+                        <span>GPX Toevoegen</span>
                       </button>
                     </div>
 
-                    <button
-                      id="btn-edit-active-route"
-                      type="button"
-                      className={`btn ${isEditing ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                      style={{
-                        width: '100%',
-                        marginTop: '0.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem',
-                      }}
-                      onClick={() => {
-                        if (!isEditing && waypoints.length === 0 && currentRoute) {
-                          const { waypoints: extractedWps, segments: extractedSegments } =
-                            extractWaypointsFromRoute(currentRoute);
-                          setWaypoints(extractedWps);
-                          setSegments(extractedSegments);
-                          setHistory([extractedWps]);
-                          setHistoryIndex(0);
-                        }
-                        setIsEditing((prev) => !prev);
-                      }}
-                    >
-                      <span>{isEditing ? '✓' : '✏️'}</span>
-                      <span>
-                        {isEditing ? 'Bewerken afronden' : 'Route bewerken / punten slepen'}
-                      </span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <button
+                        id="btn-edit-active-route"
+                        type="button"
+                        className={`btn ${isEditing ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                        }}
+                        onClick={() => {
+                          if (!isEditing && waypoints.length === 0 && currentRoute) {
+                            const { waypoints: extractedWps, segments: extractedSegments } =
+                              extractWaypointsFromRoute(currentRoute);
+                            setWaypoints(extractedWps);
+                            setSegments(extractedSegments);
+                            setHistory([extractedWps]);
+                            setHistoryIndex(0);
+                          }
+                          setIsEditing((prev) => !prev);
+                        }}
+                      >
+                        <span>{isEditing ? '✓' : '✏️'}</span>
+                        <span>
+                          {isEditing ? 'Afronden' : 'Punten slepen'}
+                        </span>
+                      </button>
+                      <button
+                        id="btn-edit-metadata-active"
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() => setIsMetadataModalOpen(true)}
+                        title="Beheer titel, status, omschrijving en prijs"
+                      >
+                        ⚙️ Beheer & Status
+                      </button>
+                    </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                       <button
@@ -659,8 +777,8 @@ export const App: React.FC = () => {
                 ) : (
                   <>
                     <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                      Klik op de kaart om punten te verbinden, of importeer een bestaande GPX-route
-                      om te navigeren en analyseren.
+                      Klik op de kaart om punten te verbinden, of importeer één of meerdere GPX-bestanden
+                      om te navigeren, koppelen en analyseren.
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -692,10 +810,10 @@ export const App: React.FC = () => {
                         id="btn-import-gpx"
                         type="button"
                         className="import-gpx-btn"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={triggerNewGpx}
                       >
                         <span>📂</span>
-                        <span>GPX Route Importeren</span>
+                        <span>GPX Route(s) Importeren</span>
                       </button>
 
                       <button
@@ -788,6 +906,10 @@ export const App: React.FC = () => {
         onClose={() => setIsSaveModalOpen(false)}
         onSave={handleSaveRoute}
         defaultTitle={currentRoute?.title || 'Mijn Wandelroute'}
+        defaultDescription={currentRoute?.description || ''}
+        defaultLocation={currentRoute?.location || ''}
+        defaultStatus={currentRoute?.status || 'draft'}
+        defaultPriceEur={currentRoute?.priceEur ?? 0}
         distanceKm={currentRoute?.totalDistanceKm || 0}
         pointCount={waypoints.length}
       />
@@ -797,6 +919,15 @@ export const App: React.FC = () => {
         onClose={() => setIsLibraryModalOpen(false)}
         onSelectRoute={handleLoadSavedRoute}
         currentRouteId={activeSavedRouteId}
+      />
+
+      <RouteMetadataModal
+        isOpen={isMetadataModalOpen}
+        onClose={() => setIsMetadataModalOpen(false)}
+        route={currentRoute}
+        onSaveSuccess={(updated) => {
+          setCurrentRoute((prev) => (prev ? { ...prev, ...updated } : null));
+        }}
       />
     </div>
   );

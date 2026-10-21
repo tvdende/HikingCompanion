@@ -27,10 +27,17 @@ export const oauthAccounts = sqliteTable('oauth_accounts', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
 });
 
+export const routeStatusEnum = ['draft', 'definitive'] as const;
+export type RouteStatus = (typeof routeStatusEnum)[number];
+
 export const routes = sqliteTable('routes', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
+  description: text('description'),
+  location: text('location'),
+  status: text('status', { enum: routeStatusEnum }).notNull().default('draft'),
+  priceEur: real('price_eur').notNull().default(0.0),
   totalDistanceKm: real('total_distance_km').notNull(),
   coordinatesJson: text('coordinates_json').notNull(),
   waypointsJson: text('waypoints_json'),

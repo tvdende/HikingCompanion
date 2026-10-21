@@ -1,5 +1,6 @@
 export * from './types/index.js';
 export * from './gpx/parser.js';
+export * from './gpx/stitcher.js';
 export * from './gpx/metrics.js';
 export * from './gpx/serializer.js';
 export * from './route-editing/index.js';
