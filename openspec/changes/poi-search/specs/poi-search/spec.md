@@ -22,10 +22,13 @@ Each POI entity MUST contain:
 - `category`: one of the standardized POI categories
 - `coordinates`: `[longitude, latitude]`
 - `elevation`: optional elevation in meters
+- `website`: optional website URL (extracted from OSM tags `website`, `contact:website`, or `url`)
 - `openingHours`: optional raw OSM opening hours string
 - `isOpenNow`: optional boolean indicating whether the facility is currently open
 - `distanceFromRouteMeters`: distance from the nearest point on the active route
 - `distanceAlongRouteMeters`: cumulative trail distance from the start of the route to the POI turnout point
+
+The frontend UI SHALL display a direct, clickable link button to the POI's website in the map popup and POI drawer whenever a website URL is available.
 
 #### Scenario: Categorizing a drinking water fountain
 - GIVEN an OSM node with tags `{"amenity": "drinking_water", "name": "Bergbrunnen"}`

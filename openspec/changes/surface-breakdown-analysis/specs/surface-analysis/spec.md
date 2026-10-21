@@ -61,3 +61,15 @@ The system SHALL persist the computed surface breakdown metrics and segment clas
 - **GIVEN** a route that has previously been analyzed and saved
 - **WHEN** a user opens the route from the library or via share link
 - **THEN** the surface breakdown and colored map segments are rendered immediately without issuing a new external analysis request
+
+### Requirement: Automatic Surface Analysis on Route Save
+When a user saves or updates a route (`POST /api/routes` or `PUT /api/routes/:id`):
+- If the route's `surfaceBreakdown` is not yet computed or known, the backend SHALL automatically query the terrain and surface types per path segment from OpenStreetMap
+- The resulting surface breakdown and colored segment classifications MUST be persisted directly in the D1 database alongside the route coordinates
+- This guarantees that every saved route has permanent precomputed surface data without requiring subsequent manual analysis
+
+#### Scenario: Saving a newly planned route without prior surface analysis
+- **GIVEN** a newly drawn or uploaded GPX route where the user has not clicked "Analyseer ondergrond"
+- **WHEN** the user saves the route to the database
+- **THEN** the system automatically performs surface analysis per path segment in the save pipeline
+- **AND** the route record in D1 is stored with the computed `surfaceBreakdown`
