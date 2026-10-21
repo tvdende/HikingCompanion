@@ -3,7 +3,7 @@
 ## Git Workflow & Branch Policy
 - **Mandatory Feature Branches**: All new features, changes, enhancements, and OpenSpec implementations MUST be developed on dedicated branches starting with `feat/` (e.g. `feat/my-feature`).
 - **No Direct Push to `main`**: Direct commits and pushes to `main` are strictly prohibited.
-- **Pull Requests**: Code is merged into `main` only via Pull Requests after passing automated CI tests (`npm run test:unit`, `npm run test:e2e`, and monorepo build).
+- **Pull Requests**: Code is merged into `main` only via Pull Requests after passing automated CI tests (`npm run test:unit` and monorepo build). E2E tests (`npm run test:e2e`) are run locally.
 
 ## Environments & Deployments
 - **Test Environment**:
