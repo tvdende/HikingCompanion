@@ -786,20 +786,14 @@ export const App: React.FC = () => {
                         id="btn-new-route"
                         type="button"
                         onClick={() => setIsEditing(true)}
+                        className="btn btn-primary"
                         style={{
                           padding: '10px 14px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid rgba(14, 165, 233, 0.5)',
-                          background: 'linear-gradient(135deg, var(--primary-600), var(--primary-700))',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
                           textAlign: 'left',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
-                          boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                          width: '100%',
                         }}
                       >
                         <span>✏️</span>
