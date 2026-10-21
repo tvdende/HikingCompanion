@@ -215,4 +215,52 @@ describe('Hono Auth API Endpoints', () => {
     const meData = (await meRes.json()) as any;
     expect(meData.user).toBeNull();
   });
+
+  it('rejects mock login on ENVIRONMENT=test with 403 Forbidden', async () => {
+    const res = await app.request(
+      '/api/auth/mock-login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'user' }),
+      },
+      { DB: testEnv.d1, ENVIRONMENT: 'test', MOCK_AUTH: 'false' }
+    );
+
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as any;
+    expect(data.error).toBe('Mock login is only available in development');
+  });
+
+  it('rejects mock login on ENVIRONMENT=production with 403 Forbidden', async () => {
+    const res = await app.request(
+      '/api/auth/mock-login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'user' }),
+      },
+      { DB: testEnv.d1, ENVIRONMENT: 'production', MOCK_AUTH: 'false' }
+    );
+
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as any;
+    expect(data.error).toBe('Mock login is only available in development');
+  });
+
+  it('rejects mock login when MOCK_AUTH=false even without ENVIRONMENT', async () => {
+    const res = await app.request(
+      '/api/auth/mock-login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'user' }),
+      },
+      { DB: testEnv.d1, MOCK_AUTH: 'false' }
+    );
+
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as any;
+    expect(data.error).toBe('Mock login is only available in development');
+  });
 });

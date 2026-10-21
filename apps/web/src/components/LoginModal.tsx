@@ -90,47 +90,51 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </a>
         </div>
 
-        <div className="modal-divider">
-          <span>OF VOOR LOKALE ONTWIKKELING</span>
-        </div>
+        {import.meta.env.DEV && (
+          <>
+            <div className="modal-divider">
+              <span>OF VOOR LOKALE ONTWIKKELING</span>
+            </div>
 
-        <div className="mock-login-section">
-          <p className="mock-subtitle">Direct inloggen als testrol:</p>
-          <div className="mock-btn-group">
-            <button
-              id="btn-mock-user"
-              type="button"
-              className="mock-role-btn"
-              disabled={loadingRole !== null}
-              onClick={() => handleMockLogin('user')}
-            >
-              <span>👤</span>
-              <span>Wandelaar</span>
-            </button>
+            <div className="mock-login-section">
+              <p className="mock-subtitle">Direct inloggen als testrol:</p>
+              <div className="mock-btn-group">
+                <button
+                  id="btn-mock-user"
+                  type="button"
+                  className="mock-role-btn"
+                  disabled={loadingRole !== null}
+                  onClick={() => handleMockLogin('user')}
+                >
+                  <span>👤</span>
+                  <span>Wandelaar</span>
+                </button>
 
-            <button
-              id="btn-mock-planner"
-              type="button"
-              className="mock-role-btn"
-              disabled={loadingRole !== null}
-              onClick={() => handleMockLogin('planner')}
-            >
-              <span>📐</span>
-              <span>Route Planner</span>
-            </button>
+                <button
+                  id="btn-mock-planner"
+                  type="button"
+                  className="mock-role-btn"
+                  disabled={loadingRole !== null}
+                  onClick={() => handleMockLogin('planner')}
+                >
+                  <span>📐</span>
+                  <span>Route Planner</span>
+                </button>
 
-            <button
-              id="btn-mock-admin"
-              type="button"
-              className="mock-role-btn admin-role"
-              disabled={loadingRole !== null}
-              onClick={() => handleMockLogin('admin')}
-            >
-              <span>🛡️</span>
-              <span>Beheerder</span>
-            </button>
-          </div>
-        </div>
+                <button
+                  id="btn-mock-admin"
+                  type="button"
+                  className="mock-role-btn admin-role"
+                  disabled={loadingRole !== null}
+                  onClick={() => handleMockLogin('admin')}
+                >
+                  <span>🛡️</span>
+                  <span>Beheerder</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

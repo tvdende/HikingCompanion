@@ -9,8 +9,15 @@ database_name = "hiking-companion-db"
 database_id = "local-d1-db"
 migrations_dir = "drizzle/migrations"
 
+[vars]
+ENVIRONMENT = "development"
+MOCK_AUTH = "true"
+
 [env.test]
 name = "hiking-companion-api-test"
+[env.test.vars]
+ENVIRONMENT = "test"
+MOCK_AUTH = "false"
 [[env.test.d1_databases]]
 binding = "DB"
 database_name = "hiking-companion-db-test"
@@ -19,6 +26,9 @@ migrations_dir = "drizzle/migrations"
 
 [env.production]
 name = "hiking-companion-api-prod"
+[env.production.vars]
+ENVIRONMENT = "production"
+MOCK_AUTH = "false"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "hiking-companion-db-prod"
