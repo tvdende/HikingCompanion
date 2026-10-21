@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 export interface SaveRouteData {
   title: string;
@@ -96,10 +98,10 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
       aria-modal="true"
       aria-labelledby="save-modal-title"
     >
-      <div className="modal-content save-route-modal-card" style={{ maxWidth: '520px' }}>
+      <div className="modal-content max-w-[520px]">
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>💾</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💾</span>
             <h2 id="save-modal-title" className="modal-title">
               Route Opslaan
             </h2>
@@ -116,20 +118,19 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
 
         <form onSubmit={handleSubmit} className="modal-form">
           {error && (
-            <div id="save-route-error" className="error-message" role="alert" style={{ margin: '0.75rem 1.25rem' }}>
+            <div id="save-route-error" className="error-message mx-5 my-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">
               ⚠️ {error}
             </div>
           )}
 
-          <div style={{ padding: '0 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div className="px-5 flex flex-col gap-3.5">
             <div className="form-group">
               <label htmlFor="input-route-title" className="form-label">
                 Naam van de route *
               </label>
-              <input
+              <Input
                 id="input-route-title"
                 type="text"
-                className="form-input"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="bijv. Veluwezoom Rondwandeling"
@@ -139,7 +140,7 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="form-group">
                 <label htmlFor="save-route-status" className="form-label">
                   Status
@@ -159,12 +160,11 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
                 <label htmlFor="save-route-price" className="form-label">
                   Prijs (€)
                 </label>
-                <input
+                <Input
                   id="save-route-price"
                   type="number"
                   step="0.01"
                   min="0"
-                  className="form-input"
                   value={priceEur}
                   onChange={(e) => setPriceEur(e.target.value)}
                   placeholder="0.00"
@@ -176,10 +176,9 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
               <label htmlFor="save-route-location" className="form-label">
                 Regio / Locatie
               </label>
-              <input
+              <Input
                 id="save-route-location"
                 type="text"
-                className="form-input"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="bijv. Gelderland, Veluwe"
@@ -197,11 +196,10 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Korte toelichting of etappe-informatie..."
-                style={{ resize: 'vertical' }}
               />
             </div>
 
-            <div className="route-save-summary-stats" style={{ marginTop: '0.25rem' }}>
+            <div className="route-save-summary-stats mt-1">
               <div className="summary-stat-item">
                 <span className="summary-label">Afstand</span>
                 <span className="summary-value">{distanceKm.toFixed(2)} km</span>
@@ -213,24 +211,24 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
             </div>
           </div>
 
-          <div className="modal-actions" style={{ padding: '1rem 1.25rem', marginTop: '0.5rem' }}>
-            <button
+          <div className="modal-actions px-5 py-4 mt-2">
+            <Button
               id="btn-cancel-save-route"
               type="button"
-              className="btn btn-secondary"
+              variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
             >
               Annuleren
-            </button>
-            <button
+            </Button>
+            <Button
               id="btn-confirm-save-route"
               type="submit"
-              className="btn btn-primary"
+              variant="primary"
               disabled={isSubmitting || !title.trim()}
             >
               {isSubmitting ? 'Opslaan...' : 'Route Opslaan'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

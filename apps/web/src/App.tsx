@@ -30,6 +30,8 @@ import { RouteEditorToolbar } from './components/RouteEditorToolbar';
 import { SaveRouteModal, type SaveRouteData } from './components/SaveRouteModal';
 import { RouteLibraryModal } from './components/RouteLibraryModal';
 import { RouteMetadataModal } from './components/RouteMetadataModal';
+import { Button } from './components/ui/button';
+import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
@@ -574,24 +576,13 @@ export const App: React.FC = () => {
             {/* Planner Mode Overlay Panel */}
             {mode === 'planner' && (
               <aside id="planner-panel" className="planner-sidebar" aria-label="Route Planner">
-                <div
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-[#1b261e]">
                     Route Planner
                   </h2>
-                  <span
-                    className="badge"
-                    style={{
-                      background: 'rgba(14, 165, 233, 0.2)',
-                      color: '#38bdf8',
-                      fontSize: '0.75rem',
-                      padding: '2px 8px',
-                      borderRadius: '99px',
-                    }}
-                  >
+                  <Badge variant="secondary">
                     Desktop Modus
-                  </span>
+                  </Badge>
                 </div>
 
                 {fileError && (
@@ -604,35 +595,16 @@ export const App: React.FC = () => {
                   <div id="loaded-route-card" className="route-summary-card">
                     <div className="route-header-row">
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '4px' }}>
-                          <span className="route-badge">Actieve Route</span>
-                          <span
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <Badge variant="default">Actieve Route</Badge>
+                          <Badge
                             id="active-route-status-badge"
-                            style={{
-                              fontSize: '0.7rem',
-                              padding: '1px 6px',
-                              borderRadius: '99px',
-                              fontWeight: 700,
-                              background:
-                                currentRoute.status === 'definitive'
-                                  ? 'rgba(34, 197, 94, 0.2)'
-                                  : 'rgba(234, 179, 8, 0.2)',
-                              color:
-                                currentRoute.status === 'definitive' ? '#4ade80' : '#facc15',
-                            }}
+                            variant={currentRoute.status === 'definitive' ? 'success' : 'secondary'}
                           >
                             {currentRoute.status === 'definitive' ? '🟢 Definitief' : '🟡 Concept'}
-                          </span>
+                          </Badge>
                           {currentRoute.priceEur !== undefined && currentRoute.priceEur > 0 && (
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                padding: '1px 6px',
-                                borderRadius: '99px',
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                color: 'var(--text-main)',
-                              }}
-                            >
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
                               €{currentRoute.priceEur.toFixed(2)}
                             </span>
                           )}
@@ -641,7 +613,7 @@ export const App: React.FC = () => {
                           {currentRoute.title}
                         </h3>
                         {currentRoute.location && (
-                          <p style={{ fontSize: '0.8rem', color: 'var(--primary-400)', margin: '2px 0 0' }}>
+                          <p className="text-xs text-[#576359] m-0 mt-0.5">
                             📍 {currentRoute.location}
                           </p>
                         )}
@@ -689,40 +661,35 @@ export const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="route-actions-row">
-                      <button
+                    <div className="flex flex-col gap-2">
+                      <Button
                         id="btn-export-gpx"
-                        type="button"
-                        className="export-gpx-btn"
+                        variant="primary"
+                        className="w-full"
                         onClick={handleExportGpx}
                       >
                         <span>💾</span>
                         <span>Download GPX</span>
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         id="btn-append-gpx"
-                        type="button"
-                        className="secondary-gpx-btn"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
                         onClick={triggerAppendGpx}
                         title="Extra GPX aan deze route toevoegen en koppelen"
                       >
                         <span>➕</span>
                         <span>GPX Toevoegen</span>
-                      </button>
+                      </Button>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                      <button
+                    <div className="flex gap-2 mt-1">
+                      <Button
                         id="btn-edit-active-route"
-                        type="button"
-                        className={`btn ${isEditing ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.4rem',
-                        }}
+                        variant={isEditing ? 'primary' : 'secondary'}
+                        size="sm"
+                        className="flex-1"
                         onClick={() => {
                           if (!isEditing && waypoints.length === 0 && currentRoute) {
                             const { waypoints: extractedWps, segments: extractedSegments } =
@@ -739,87 +706,78 @@ export const App: React.FC = () => {
                         <span>
                           {isEditing ? 'Afronden' : 'Punten slepen'}
                         </span>
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         id="btn-edit-metadata-active"
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        style={{ flex: 1 }}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setIsMetadataModalOpen(true)}
                         title="Beheer titel, status, omschrijving en prijs"
                       >
                         ⚙️ Beheer & Status
-                      </button>
+                      </Button>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                      <button
+                    <div className="flex gap-2 mt-1">
+                      <Button
                         id="btn-save-route-sidebar"
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        style={{ flex: 1 }}
+                        variant="primary"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setIsSaveModalOpen(true)}
                         disabled={isCalculating}
                       >
                         💾 Opslaan
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         id="btn-open-route-library-sidebar"
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        style={{ flex: 1 }}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setIsLibraryModalOpen(true)}
                       >
                         📚 Bibliotheek
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                    <p className="text-xs text-[#576359] leading-relaxed">
                       Klik op de kaart om punten te verbinden, of importeer één of meerdere GPX-bestanden
                       om te navigeren, koppelen en analyseren.
                     </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <button
+                    <div className="flex flex-col gap-2">
+                      <Button
                         id="btn-new-route"
-                        type="button"
+                        variant="primary"
+                        className="w-full justify-start py-2.5"
                         onClick={() => setIsEditing(true)}
-                        className="btn btn-primary"
-                        style={{
-                          padding: '10px 14px',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          width: '100%',
-                        }}
                       >
                         <span>✏️</span>
                         <span>Nieuwe Route Tekenen</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         id="btn-import-gpx"
-                        type="button"
-                        className="import-gpx-btn"
+                        variant="secondary"
+                        className="w-full justify-start border-dashed border-[#c5c1b6] bg-[#f8f7f4] hover:bg-[#f0eee7]"
                         onClick={triggerNewGpx}
                       >
                         <span>📂</span>
                         <span>GPX Route(s) Importeren</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         id="btn-open-route-library-sidebar"
-                        type="button"
-                        className="btn btn-secondary"
+                        variant="secondary"
+                        className="w-full justify-start"
                         onClick={() => setIsLibraryModalOpen(true)}
-                        style={{ textAlign: 'left', justifyContent: 'flex-start' }}
                       >
                         <span>📚</span>
                         <span>Mijn Opgeslagen Routes</span>
-                      </button>
+                      </Button>
                     </div>
                   </>
                 )}
@@ -833,33 +791,16 @@ export const App: React.FC = () => {
                 className="companion-hud"
                 aria-label="Hike Companion HUD"
               >
-                <div
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
+                <div className="flex justify-between items-center">
                   <div>
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        color: '#38bdf8',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
+                    <span className="text-xs font-bold text-[#24583d] uppercase tracking-wider">
                       Wandelmodus Actief
                     </span>
-                    <h3
-                      style={{
-                        fontSize: '1.1rem',
-                        fontWeight: 800,
-                        color: 'white',
-                        marginTop: '2px',
-                      }}
-                    >
+                    <h3 className="text-lg font-extrabold text-[#1b261e] mt-0.5">
                       {currentRoute ? currentRoute.title : 'Live Navigatie'}
                     </h3>
                   </div>
-                  <span style={{ fontSize: '1.25rem' }}>🧭</span>
+                  <span className="text-xl">🧭</span>
                 </div>
 
                 <div className="stats-grid">

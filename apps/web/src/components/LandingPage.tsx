@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { showcaseContent } from '../content/showcase';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -22,28 +24,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
     <div className="landing-page-container" id="landing-page">
       {/* 1. Hero Section */}
       <section className="landing-hero-section">
-        <div className="landing-hero-badge">{hero.badge}</div>
+        <Badge variant="default" className="text-sm px-4 py-1.5 font-bold mb-5 shadow-xs">
+          {hero.badge}
+        </Badge>
         <h1 className="landing-hero-title">{hero.headline}</h1>
         <p className="landing-hero-subtitle">{hero.subheadline}</p>
 
         <div className="landing-hero-actions">
-          <button
+          <Button
             id="btn-hero-login"
-            type="button"
-            className="landing-btn-primary"
+            variant="primary"
+            size="lg"
+            className="text-base px-6 py-3"
             onClick={onOpenLogin}
           >
             <span>🚀</span>
             <span>{hero.ctaLogin}</span>
-          </button>
-          <button
+          </Button>
+          <Button
             id="btn-hero-explore"
-            type="button"
-            className="landing-btn-secondary"
+            variant="secondary"
+            size="lg"
+            className="text-base px-6 py-3"
             onClick={handleScrollToDemo}
           >
             <span>{hero.ctaExplore}</span>
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -54,7 +60,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
             <div key={feat.id} className="landing-feature-card" id={`feature-card-${feat.id}`}>
               <div className="landing-feature-header">
                 <span className="landing-feature-icon">{feat.icon}</span>
-                <span className="landing-feature-badge">{feat.badge}</span>
+                <Badge variant="default">{feat.badge}</Badge>
               </div>
               <h2 className="landing-feature-title">{feat.title}</h2>
               <p className="landing-feature-desc">{feat.description}</p>
@@ -262,15 +268,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
           </div>
 
           <div className="landing-cta-center">
-            <button
+            <Button
               id="btn-cta-login"
-              type="button"
-              className="landing-btn-primary large-cta"
+              variant="primary"
+              size="lg"
+              className="text-base px-8 py-3.5 shadow-sm"
               onClick={onOpenLogin}
             >
               <span>🔑</span>
               <span>{loginGuide.ctaButton}</span>
-            </button>
+            </Button>
             <p className="landing-cta-subtext">
               Directe toegang • Geen creditcard nodig • 100% gratis & open source
             </p>

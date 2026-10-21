@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { AdminUserListItem, UserRole } from '@hiking-companion/core';
 import { useAuth } from '../context/AuthContext';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 interface AdminUsersModalProps {
   isOpen: boolean;
@@ -142,23 +144,22 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        <div className="admin-controls-bar">
-          <input
+        <div className="flex gap-2 mb-3">
+          <Input
             id="admin-search-input"
             type="text"
-            className="admin-search-input"
             placeholder="Zoek op naam of e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button
+          <Button
             id="btn-refresh-users"
-            type="button"
-            className="admin-refresh-btn"
+            variant="secondary"
+            size="sm"
             onClick={() => fetchUsers(searchTerm)}
           >
             🔄 Verversen
-          </button>
+          </Button>
         </div>
 
         {actionError && (

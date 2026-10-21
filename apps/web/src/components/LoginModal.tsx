@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '@hiking-companion/core';
+import { Button } from './ui/button';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -99,38 +100,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className="mock-login-section">
               <p className="mock-subtitle">Direct inloggen als testrol:</p>
               <div className="mock-btn-group">
-                <button
+                <Button
                   id="btn-mock-user"
-                  type="button"
-                  className="mock-role-btn"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 flex-col h-auto py-2.5 text-xs font-semibold"
                   disabled={loadingRole !== null}
                   onClick={() => handleMockLogin('user')}
                 >
-                  <span>👤</span>
+                  <span className="text-base">👤</span>
                   <span>Wandelaar</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
                   id="btn-mock-planner"
-                  type="button"
-                  className="mock-role-btn"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 flex-col h-auto py-2.5 text-xs font-semibold"
                   disabled={loadingRole !== null}
                   onClick={() => handleMockLogin('planner')}
                 >
-                  <span>📐</span>
+                  <span className="text-base">📐</span>
                   <span>Route Planner</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
                   id="btn-mock-admin"
-                  type="button"
-                  className="mock-role-btn admin-role"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 flex-col h-auto py-2.5 text-xs font-semibold border-amber-300 hover:bg-amber-50"
                   disabled={loadingRole !== null}
                   onClick={() => handleMockLogin('admin')}
                 >
-                  <span>🛡️</span>
+                  <span className="text-base">🛡️</span>
                   <span>Beheerder</span>
-                </button>
+                </Button>
               </div>
             </div>
           </>

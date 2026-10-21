@@ -169,9 +169,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#0f172a',
+          'line-color': '#ffffff',
           'line-width': 7,
-          'line-opacity': 0.85,
+          'line-opacity': 0.9,
         },
       });
 
@@ -185,7 +185,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#0284c7',
+          'line-color': '#24583d',
           'line-width': 4.5,
         },
       });
@@ -447,7 +447,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           });
 
           if (!userMarkerRef.current) {
-            userMarkerRef.current = new maplibregl.Marker({ color: '#0ea5e9' })
+            userMarkerRef.current = new maplibregl.Marker({ color: '#24583d' })
               .setLngLat([longitude, latitude])
               .addTo(mapInstance.current);
           } else {

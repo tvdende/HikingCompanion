@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { AppMode } from '@hiking-companion/core';
 import { useAuth } from '../context/AuthContext';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
 interface HeaderProps {
   currentMode: AppMode;
@@ -33,11 +35,11 @@ export const Header: React.FC<HeaderProps> = ({
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <span className="role-tag admin">Beheerder</span>;
+        return <Badge variant="destructive">Beheerder</Badge>;
       case 'planner':
-        return <span className="role-tag planner">Planner</span>;
+        return <Badge variant="secondary">Planner</Badge>;
       default:
-        return <span className="role-tag user">Wandelaar</span>;
+        return <Badge variant="default">Wandelaar</Badge>;
     }
   };
 
@@ -145,15 +147,15 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         ) : (
-          <button
+          <Button
             id="btn-open-login"
-            type="button"
-            className="login-trigger-btn"
+            variant="primary"
+            size="sm"
             onClick={onOpenLogin}
           >
             <span>👤</span>
             <span>Inloggen</span>
-          </button>
+          </Button>
         )}
       </div>
     </header>
