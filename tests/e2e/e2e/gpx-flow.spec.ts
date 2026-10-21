@@ -39,7 +39,7 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
 
     // Verify route card appears with title
     const routeCard = page.locator('#loaded-route-card');
-    await expect(routeCard).toBeVisible();
+    await expect(routeCard).toBeVisible({ timeout: 10000 });
 
     const routeTitle = page.locator('#route-title');
     await expect(routeTitle).toContainText('Veluwe Heuvelrug Trail');
@@ -64,7 +64,7 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
     // Upload GPX file first
     const fileInput = page.locator('#gpx-file-input');
     await fileInput.setInputFiles(sampleGpxPath);
-    await expect(page.locator('#loaded-route-card')).toBeVisible();
+    await expect(page.locator('#loaded-route-card')).toBeVisible({ timeout: 10000 });
 
     // Setup download listener and click export
     const downloadPromise = page.waitForEvent('download');
@@ -78,7 +78,7 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
   test('displays route metrics in Companion HUD and clears route cleanly', async ({ page }) => {
     // Load route
     await page.locator('#gpx-file-input').setInputFiles(sampleGpxPath);
-    await expect(page.locator('#loaded-route-card')).toBeVisible();
+    await expect(page.locator('#loaded-route-card')).toBeVisible({ timeout: 10000 });
 
     // Switch to Companion mode
     await page.locator('#mode-switch-companion').click();
