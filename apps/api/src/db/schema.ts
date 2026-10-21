@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -27,9 +27,24 @@ export const oauthAccounts = sqliteTable('oauth_accounts', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
 });
 
+export const routes = sqliteTable('routes', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  totalDistanceKm: real('total_distance_km').notNull(),
+  coordinatesJson: text('coordinates_json').notNull(),
+  waypointsJson: text('waypoints_json'),
+  stagesJson: text('stages_json'),
+  elevationMetricsJson: text('elevation_metrics_json'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
+export type RouteRecord = typeof routes.$inferSelect;
+export type NewRouteRecord = typeof routes.$inferInsert;

@@ -56,3 +56,4 @@ export interface HikeRoute {
 }
 
 export * from './auth.js';
+export * from './route-planner.js';

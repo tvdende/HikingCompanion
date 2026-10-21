@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../../../apps/api/src/db/schema.js';
@@ -7,21 +7,25 @@ import * as schema from '../../../apps/api/src/db/schema.js';
 export function createTestDb() {
   const sqlite = new DatabaseSync(':memory:');
 
-  // Load and apply migration SQL
-  const migrationPath = resolve(
+  // Load and apply all migration SQL files in order
+  const migrationsDir = resolve(
     import.meta.dirname,
-    '../../../apps/api/drizzle/migrations/0000_sloppy_microchip.sql'
+    '../../../apps/api/drizzle/migrations'
   );
-  const migrationSql = readFileSync(migrationPath, 'utf8');
+  const sqlFiles = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
 
-  // Statements separated by --> statement-breakpoint
-  const statements = migrationSql
-    .split('--> statement-breakpoint')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  for (const file of sqlFiles) {
+    const migrationSql = readFileSync(resolve(migrationsDir, file), 'utf8');
+    const statements = migrationSql
+      .split('--> statement-breakpoint')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-  for (const statement of statements) {
-    sqlite.exec(statement);
+    for (const statement of statements) {
+      sqlite.exec(statement);
+    }
   }
 
   const d1 = {

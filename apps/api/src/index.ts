@@ -3,6 +3,8 @@ import { cors } from 'hono/cors';
 import { authMiddleware } from './auth/session.js';
 import { authRoutes } from './routes/auth.js';
 import { adminRoutes } from './routes/admin.js';
+import { routingRoutes } from './routes/routing.js';
+import { routesApi } from './routes/routes.js';
 
 export interface Env {
   DB?: D1Database;
@@ -43,5 +45,7 @@ app.get('/api/health', (c) => {
 // Mount route modules
 app.route('/api/auth', authRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/routing', routingRoutes);
+app.route('/api/routes', routesApi);
 
 export default app;
