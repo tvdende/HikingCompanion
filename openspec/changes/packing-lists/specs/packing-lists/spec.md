@@ -69,3 +69,34 @@ The system SHALL allow linking a packing list to a hiking route:
 - WHEN an authenticated hiker clicks "Kopieer naar mijn paklijsten"
 - THEN a new personal packing list is created for that hiker containing identical items with `isPacked = false`
 - AND the hiker can check off items and adjust weights independently
+
+### Requirement: Persistent Multi-Day Inpakmodus (Packing Checklist Mode)
+The system SHALL provide a dedicated "Inpakmodus" (Packing Mode) accessible directly from an active route or personal packing list:
+- Prominent interactive checkboxes allowing hikers to mark items as packed while filling their backpack
+- State changes (`isPacked: boolean`) MUST be saved immediately to the D1 database (via `PATCH /api/packing-lists/:id/items/:itemId/pack`) and mirrored in local cache so hikers can pack gradually over multiple days without losing progress
+- Live packing progress indicator showing packed count and percentage (e.g. "21 van 30 ingepakt · 70%")
+- Filter views: "Nog inpakken" (shows only unpacked items), "Alles" (full categorized list), and "Al ingepakt"
+- "Paklijst resetten" (Reset packing status) action to uncheck all items when preparing for a subsequent hike
+
+#### Scenario: Packing gear across multiple days
+- GIVEN a hiker packing their tent and sleeping gear on Thursday and closing the app
+- WHEN the hiker re-opens the inpakmodus on Friday
+- THEN the tent and sleeping gear remain checked as packed
+- AND the hiker can continue checking off clothing and food items
+
+### Requirement: LighterPack & Packstack External List Import
+The system SHALL support importing gear lists directly from external ultralight planning platforms:
+- **LighterPack**: Accepts exported CSV text or public LighterPack URL / JSON
+- **Packstack / StackPack**: Accepts exported CSV or JSON data
+- The importer SHALL automatically:
+  - Map external categories to standard categories (`uitrusting`, `slapen`, `koken`, `kleding`, etc.)
+  - Convert imperial units (oz, lbs) to metric grams (`1 oz = 28.3495 g`, `1 lb = 453.592 g`)
+  - Detect `worn` flag and assign `isWorn = true`
+  - Detect consumable items (food, fuel) and assign `isConsumable = true`
+  - Create the packing list and optionally link it immediately to the active route
+
+#### Scenario: Importing a LighterPack CSV export
+- GIVEN a LighterPack CSV file with columns `Category,Item Name,Description,Qty,Weight,Unit,Worn,Consumable`
+- WHEN the user uploads or pastes the CSV via the import modal
+- THEN the system parses all items, converts weights to integer grams, and generates a new packing list
+- AND links it to the route upon confirmation
