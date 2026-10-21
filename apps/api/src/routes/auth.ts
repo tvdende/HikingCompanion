@@ -204,15 +204,19 @@ authRoutes.get('/callback/:provider', async (c) => {
   return c.redirect(`/?auth_status=completed&provider=${provider}`);
 });
 
-// POST /api/auth/mock-login (Development & Testing)
+// POST /api/auth/mock-login (Development Only)
 authRoutes.post('/mock-login', async (c) => {
+  const isForbiddenEnv =
+    c.env?.ENVIRONMENT === 'test' ||
+    c.env?.ENVIRONMENT === 'production' ||
+    c.env?.MOCK_AUTH === 'false';
+
   const isMockAllowed =
-    c.env?.MOCK_AUTH === 'true' ||
-    c.env?.ENVIRONMENT !== 'production' ||
-    !c.env?.ENVIRONMENT;
+    !isForbiddenEnv &&
+    (c.env?.MOCK_AUTH === 'true' || c.env?.ENVIRONMENT === 'development' || !c.env?.ENVIRONMENT);
 
   if (!isMockAllowed) {
-    return c.json({ error: 'Mock login is disabled in production' }, 403);
+    return c.json({ error: 'Mock login is only available in development' }, 403);
   }
 
   if (!c.env?.DB) {
