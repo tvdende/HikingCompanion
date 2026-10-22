@@ -1,75 +1,126 @@
 ## Context
 
-In `@hiking-companion/core`, `HikeRoute` is already modeled with `stages: HikeStage[]`, and `HikeStage` contains `id`, `stageNumber`, `title`, `distanceKm`, and `coordinates: Coordinate[]`. However, the current planner editor (`App.tsx` and `RouteEditorToolbar.tsx`) treats the entire active route as a single flat list of waypoints and always wraps the computed polyline into a single `stage-1`. 
+In `@hiking-companion/core`, `HikeRoute` models `stages: HikeStage[]`, but the current planner editor (`App.tsx`, `RouteEditorToolbar.tsx`, `MapCanvas.tsx`) treats the entire active route as a single flat list of waypoints and wraps the polyline into a single `stage-1`.
 
-See `proposal.md` for motivation and user needs.
+This design document specifies the architecture for multi-stage route authoring, public transport (OV) connections, interactive stage splitting, merging, reordering, deletion with point cleanup, GPX import/export parity, and dual camera views (focused stage zoom vs. full-route reset).
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide full multi-stage authoring: splitting an existing route into multiple stages at any waypoint, adding subsequent stages, and reordering/renaming stages.
-- Maintain separate geometry and metrics per stage (distance in km, ascent/descent, waypoint count) while aggregating overall route statistics.
-- Render multi-stage routes on MapLibre with distinctive color palettes per stage, full-contrast active stage highlighting, and contextual visibility for all other stages.
-- Synchronize stage list selection in the sidebar with automatic map camera animation (`fitBounds`/`flyTo`) to the selected stage.
-- Scope interactive waypoint editing to the active stage while keeping the remaining stages rendered in the background.
+- Provide complete multi-stage authoring: splitting an existing route at any waypoint, adding subsequent stages (`+ Nieuwe etappe`), merging adjacent stages, deleting a stage (with coordinate cleanup and automatic renumbering), and reordering stages via drag-and-drop and step buttons (▲ / ▼).
+- Support Public Transport (OV) legs: mark stages as `foot`, `bus`, `train`, or `ferry`, styled on the map with dashed lines and transit badges, with distance metrics separating walking from transit km.
+- Provide interactive GPX import choices: append to active stage vs. create new stage, and single-stage merge vs. multi-stage import for multi-track GPX files.
+- Export multi-stage routes to standard GPX 1.1 with individual `<trk>` / `<trkseg>` elements containing stage titles, notes, and metrics.
+- Maintain separate geometry and metrics per stage (distance, ascent/descent, points) while aggregating overall route statistics.
+- Render multi-stage routes on MapLibre with distinctive color palettes per stage, full-contrast active stage highlight, contextual visibility for all other stages, and clear boundary badges (`S1`, `F1 / S2`, `F_last`).
+- Provide dual camera navigation: clicking a stage zooms in (`fitBounds`) to that stage, and a `🔍 Toon hele route` button instantly zooms out to frame the entire multi-day trail.
 
 **Non-Goals:**
-- Multi-day accommodation and campsite booking integrations.
-- Elevation profile chart tab switching per stage (the main elevation profile will show the full trail with stage vertical separator lines).
+- External live transit timetable APIs (e.g. 9292 or NS API integration). Transit legs are user-designated schematic connections.
+- Per-stage elevation profile splitting (the elevation profile displays the complete route with vertical stage separator lines and highlights the active stage).
 
 ## Decisions
 
-### 1. Stage-Aware Waypoint Data Structure
-- **Decision**: In `apps/web/src/App.tsx`, each `RouteWaypoint` will include an optional `stageId?: string`. In addition, an ordered `stages: RouteStageDefinition[]` state (`id`, `stageNumber`, `title`) tracks the stages.
-- **Rationale**: When waypoints are split or dragged, assigning `stageId` to waypoints keeps waypoint ordering deterministic. When the route polyline is recalculated via `/api/routing/route`, segments are grouped by `stageId` to produce separate `HikeStage` objects with their own coordinates and distances.
-- **Alternatives considered**:
-  - *Separate independent waypoint arrays per stage*: Makes route-wide GPX export, undo/redo history, and boundary snapping significantly more complex.
+### 1. Stage-Aware Data Structure & Type Extensions
+- **Decision**: In `packages/core/src/types/index.ts`, extend `HikeStage`:
+  ```typescript
+  export type TransportType = 'foot' | 'bus' | 'train' | 'ferry';
 
-### 2. Multi-Stage Polyline Styling on MapLibre
-- **Decision**: Render route polylines using a single GeoJSON `FeatureCollection` where each stage is a `Feature<LineString>` containing `{ stageId, stageNumber, color, isActive }` properties.
-- **Palette**: Cycle through an outdoor palette:
-  - Stage 1: Emerald/Forest Green (`#24583d`)
-  - Stage 2: Deep Ochre / Terracotta (`#c26d2e`)
-  - Stage 3: Slate Mountain Blue (`#33658a`)
-  - Stage 4: Purple Sage (`#6b4c7a`)
-  - Stage 5: Dark Pine (`#1d3557`)
-- **Active vs. Inactive**:
-  - Active stage: line-width `6px`, opacity `1.0`, casing `2px white`.
-  - Inactive stages: line-width `4px`, opacity `0.55`, dashed or solid colored line.
-- **Rationale**: Keeps all stages clearly visible at all times, fulfilling the user requirement that non-active stages remain visible during editing.
+  export interface HikeStage {
+    id: string;
+    stageNumber: number;
+    title: string;
+    distanceKm: number;
+    coordinates: Coordinate[];
+    notes?: string;
+    transportType?: TransportType;
+    elevationGainMeters?: number;
+    elevationLossMeters?: number;
+  }
+  ```
+  In `packages/core/src/types/route-planner.ts`:
+  ```typescript
+  export interface RouteWaypoint {
+    id: string;
+    coordinate: Coordinate;
+    routingMode: RoutingMode;
+    name?: string;
+    stageId?: string;
+  }
+  ```
+- **Rationale**: Keeps waypoints tied to stages while allowing deterministic routing per stage. `transportType` and `notes` are first-class attributes persisted to Cloudflare D1 and exported to GPX.
 
-### 3. Stage Navigation & Camera Viewport Animation
-- **Decision**: When the user clicks a stage card in the `StageManagerPanel`:
-  1. `activeStageId` is set to that stage.
-  2. Bounding box `[minLng, minLat, maxLng, maxLat]` is computed from that stage's coordinates.
-  3. `map.fitBounds(bounds, { padding: { top: 90, bottom: 90, left: 340, right: 90 }, duration: 1000 })` is invoked.
-- **Rationale**: Instantly provides geographic context for that specific day's hike while keeping the planner sidebar unobscured.
+### 2. Public Transport (OV) Modeling & Visual Styling
+- **Decision**: When an etappe is set to `bus`, `train`, or `ferry`:
+  - Polyline is rendered with a dashed/dotted pattern (`line-dasharray: [2, 2]`) in MapLibre.
+  - The transition badge displays a vehicle icon (🚌, 🚆, ⛴️).
+  - Overall route statistics separate walking distance from public transit distance.
+- **Rationale**: Hikers immediately see which parts of their itinerary are traversed on foot vs. by vehicle, avoiding misleading multi-day walking statistics.
 
-### 4. Interactive Stage Splitting & Boundary Management
-- **Decision**: When clicking on any intermediate waypoint marker in editing mode, the popup will provide a button: "✂️ Splits in nieuwe etappe" (Split into new stage).
-- **Behavior**: All waypoints from index `0` to `k` remain in Stage `S`, and waypoints from `k` onwards are moved to a newly spawned Stage `S+1`.
-- **Alternatives considered**:
-  - *Modal split dialog with kilometer slider*: Waypoint-based splitting is more precise and intuitive because hikers split stages at towns, shelters, or road crossings.
+### 3. Interactive GPX Import Dialogs
+- **Decision**: When importing a GPX file:
+  - If a route is already active: Show a modal dialog offering:
+    1. *"Toevoegen aan huidige etappe"* (Append coordinates to active stage).
+    2. *"Als nieuwe etappe toevoegen"* (Spawn a new stage preserving existing stages).
+  - If the GPX file contains multiple `<trk>` or `<trkseg>` elements: Show a dialog offering:
+    1. *"Als losse etappes importeren"* (Parse each segment into a separate `HikeStage`).
+    2. *"Als één samengevoegde etappe importeren"* (Merge into a single stage).
+- **Rationale**: Eliminates guesswork and ensures power-users importing routes like the Pieterpad or GR get exact stage structure without flattening.
+
+### 4. Visual Stage Distinction & Transition Badges on MapLibre
+- **Decision**: Render route polylines using a GeoJSON `FeatureCollection` where each stage is a `Feature<LineString>`:
+  - Palette: Forest Green (`#24583d`), Ochre (`#c26d2e`), Slate Blue (`#33658a`), Purple Sage (`#6b4c7a`), Dark Pine (`#1d3557`).
+  - Active stage: line-width `6px`, opacity `1.0`, interactive handles.
+  - Inactive stages: line-width `4px`, opacity `0.55` (always visible for global context).
+  - Badges: HTML Marker elements on start/transition points:
+    - First point: `S1` (Forest Green pill badge)
+    - Transition points: `F1 / S2` (Two-tone pill badge)
+    - Final finish: `Fn` (Ochre/Pine pill badge)
+    - Transit legs: include transit icon (`🚌 S2`).
+- **Rationale**: Clear visual hierarchy at a glance, matching physical trail signage.
+
+### 5. Interactive Splitting, Merging, and Deletion
+- **Splitting**: Clicking an intermediate waypoint marker shows popup button `"✂️ Splits in nieuwe etappe"`. Waypoints $[0 \dots k]$ remain in Stage $N$, and $[k \dots end]$ move to newly created Stage $N+1$.
+- **Merging**: Clicking on a transition badge (`F1 / S2`) or clicking "Samenvoegen" in the sidebar merges Stage $N+1$ into Stage $N$.
+- **Deletion**: Clicking "Verwijderen" on a stage prompts for confirmation. Upon confirmation, all waypoints and segments belonging to that stage are removed from the map. Remaining stages are automatically renumbered (1, 2, 3...) sequentially.
+- **Add New Stage**: Clicking `+ Nieuwe etappe` in the sidebar appends a new stage starting at the finish point of the last stage.
+
+### 6. Stage Reordering Engine (Drag-and-Drop + Step Buttons)
+- **Decision**: In `StageManagerPanel`, support both:
+  - HTML5 / pointer drag handles (grip icon) to drag stage cards up and down.
+  - Accessible ▲ / ▼ step buttons for mobile touch devices.
+  - Moving a stage re-indexes `stageNumber` across all stages and preserves waypoint continuity.
+
+### 7. Dual Camera Navigation
+- **Stage Focus**: Clicking a stage card sets `activeStageId` and calls `map.fitBounds(stageBounds, { padding: 80, duration: 800 })`.
+- **Full Route Reset**: Dedicated button `🔍 Toon hele route` at the top of the sidebar list calls `fitRouteBounds()` for the entire trail bounding box.
 
 ## Architectural Diagram
 
 ```mermaid
 graph TD
-    App[App.tsx State: currentRoute, activeStageId, waypoints] --> SMP[StageManagerPanel.tsx]
-    App --> RET[RouteEditorToolbar.tsx]
+    App[App.tsx State: stages, waypoints, activeStageId, history] --> SMP[StageManagerPanel.tsx]
     App --> MC[MapCanvas.tsx Multi-Stage GeoJSON]
+    App --> GMD[GpxImportModal.tsx]
+    App --> RET[RouteEditorToolbar.tsx]
 
     SMP -- "onSelectStage(id)" --> App
-    SMP -- "onSplitStage(wpId)" --> App
-    SMP -- "onRenameStage(id, title)" --> App
-    
-    MC -- "Fit bounds to active stage" --> Camera[MapLibre Camera FlyTo]
-    MC -- "Render Active Stage (High contrast)" --> ActiveLine[Active Stage Polyline]
-    MC -- "Render Context Stages (Muted contrast)" --> ContextLine[Context Stage Polylines]
+    SMP -- "onReorderStages(newOrder)" --> App
+    SMP -- "onAddStage()" --> App
+    SMP -- "onDeleteStage(id)" --> App
+    SMP -- "onMergeStage(id)" --> App
+    SMP -- "onUpdateMetadata(id, title, notes, transportType)" --> App
+    SMP -- "onZoomFullRoute()" --> MC
+
+    MC -- "Marker click: onSplitStage(wpId)" --> App
+    MC -- "Badge click: onMergeStage(id)" --> App
+    MC -- "Fit camera to active stage bounds" --> Camera[MapLibre Camera Animation]
+
+    GMD -- "User selects import mode" --> App
 ```
 
 ## Risks / Trade-offs
 
-- **[Risk] Single-waypoint stages or empty stages during creation** → *Mitigation*: A stage must have at least 1 coordinate; empty stages show an intuitive placeholder prompt "Klik op de kaart om punten toe te voegen aan deze etappe".
-- **[Risk] Undo/redo across stage mutations** → *Mitigation*: Store the full snapshot of `{ waypoints, stages, activeStageId }` in the history stack so undo restores both stage boundaries and waypoint geometry.
-- **[Risk] Performance with 10+ stages and thousands of coordinates** → *Mitigation*: GeoJSON vector layers on MapLibre utilize WebGL hardware acceleration; updating feature properties (`isActive`) uses MapLibre feature-state or lightweight dataset updates.
+- **[Risk] Disjoint / Non-contiguous stages (transit gaps)** → *Mitigation*: Support stages whose start coordinate is not identical to the prior stage's finish (e.g. after a bus trip). MapCanvas renders each stage as an independent LineString feature.
+- **[Risk] Undo/Redo across stage mutations** → *Mitigation*: Store full snapshots of `{ waypoints, stages, activeStageId }` in the undo/redo stack so undo restores both stage boundaries and geometry seamlessly.
+- **[Risk] Touch usability for reordering** → *Mitigation*: Provide both drag-and-drop handles and explicit ▲ / ▼ buttons so mobile/tablet users have zero friction.
