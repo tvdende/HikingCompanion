@@ -1,5 +1,19 @@
 import React from 'react';
 import type { RoutingMode } from '@hiking-companion/core';
+import { Button } from './ui/button';
+import {
+  Edit3,
+  MousePointer2,
+  Footprints,
+  Minus,
+  Undo2,
+  Redo2,
+  ArrowLeftRight,
+  Trash2,
+  Save,
+  BookOpen,
+  Loader2,
+} from 'lucide-react';
 
 export interface RouteEditorToolbarProps {
   isEditing: boolean;
@@ -35,137 +49,152 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   isCalculating = false,
 }) => {
   return (
-    <div id="route-editor-toolbar" className="route-editor-toolbar" role="toolbar" aria-label="Route Editor Tools">
+    <div
+      id="route-editor-toolbar"
+      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
+      role="toolbar"
+      aria-label="Route Editor Tools"
+    >
       {/* Edit Mode Toggle */}
-      <button
+      <Button
         id="btn-toggle-edit-mode"
-        type="button"
-        className={`editor-tool-btn ${isEditing ? 'active' : ''}`}
+        variant={isEditing ? 'primary' : 'secondary'}
+        size="sm"
         onClick={onToggleEditing}
         title={isEditing ? 'Bewerken pauzeren (klik om te stoppen)' : 'Route bewerken starten (klik op kaart om punten te plaatsen)'}
         aria-pressed={isEditing}
       >
-        <span className="tool-icon">{isEditing ? '✏️' : '🖱️'}</span>
-        <span className="tool-text">{isEditing ? 'Bewerken actief' : 'Route Bewerken'}</span>
-      </button>
+        {isEditing ? <Edit3 className="w-4 h-4" /> : <MousePointer2 className="w-4 h-4" />}
+        <span>{isEditing ? 'Bewerken actief' : 'Route Bewerken'}</span>
+      </Button>
 
-      <div className="toolbar-divider" />
+      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
 
       {/* Snap Mode Toggle */}
-      <div className="routing-mode-selector" role="radiogroup" aria-label="Routering methode">
+      <div className="flex bg-[#eeece6] rounded-full p-0.5 border border-[#dfdcd3]" role="radiogroup" aria-label="Routering methode">
         <button
           id="btn-mode-snap"
           type="button"
-          className={`mode-toggle-btn ${routingMode === 'snap' ? 'selected' : ''}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
+            routingMode === 'snap'
+               ? 'bg-[#24583d] text-white shadow-xs'
+               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
+           }`}
           onClick={() => onToggleRoutingMode('snap')}
           title="Volg wandelpaden (OpenStreetMap voetpaden)"
           aria-checked={routingMode === 'snap'}
           role="radio"
         >
-          <span className="tool-icon">🥾</span>
-          <span className="mode-label">Paden</span>
+          <Footprints className="w-3.5 h-3.5" />
+          <span>Paden</span>
         </button>
         <button
           id="btn-mode-direct"
           type="button"
-          className={`mode-toggle-btn ${routingMode === 'direct' ? 'selected' : ''}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
+            routingMode === 'direct'
+              ? 'bg-[#24583d] text-white shadow-xs'
+              : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
+          }`}
           onClick={() => onToggleRoutingMode('direct')}
           title="Rechte vogelvluchtlijn (vrije lijn)"
           aria-checked={routingMode === 'direct'}
           role="radio"
         >
-          <span className="tool-icon">📏</span>
-          <span className="mode-label">Recht</span>
+          <Minus className="w-3.5 h-3.5" />
+          <span>Recht</span>
         </button>
       </div>
 
-      <div className="toolbar-divider" />
+      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
 
       {/* History Controls: Undo & Redo */}
-      <div className="history-group">
-        <button
+      <div className="flex items-center gap-1">
+        <Button
           id="btn-undo"
-          type="button"
-          className="editor-tool-btn icon-only"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-sm"
           onClick={onUndo}
           disabled={!canUndo}
           title="Ongedaan maken (Ctrl+Z)"
           aria-label="Ongedaan maken"
         >
-          ↩️
-        </button>
-        <button
+          <Undo2 className="w-4 h-4" />
+        </Button>
+        <Button
           id="btn-redo"
-          type="button"
-          className="editor-tool-btn icon-only"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-sm"
           onClick={onRedo}
           disabled={!canRedo}
           title="Opnieuw uitvoeren (Ctrl+Y)"
           aria-label="Opnieuw uitvoeren"
         >
-          ↪️
-        </button>
+          <Redo2 className="w-4 h-4" />
+        </Button>
       </div>
 
-      <div className="toolbar-divider" />
+      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
 
       {/* Route Direction Reversal */}
-      <button
+      <Button
         id="btn-reverse-route"
-        type="button"
-        className="editor-tool-btn"
+        variant="secondary"
+        size="sm"
         onClick={onReverse}
         disabled={waypointCount < 2}
         title="Draai de start- en finishrichting om"
       >
-        <span className="tool-icon">🔄</span>
-        <span className="tool-text">Omdraaien</span>
-      </button>
+        <ArrowLeftRight className="w-4 h-4" />
+        <span>Omdraaien</span>
+      </Button>
 
       {/* Clear Route */}
-      <button
+      <Button
         id="btn-clear-editor"
-        type="button"
-        className="editor-tool-btn danger"
+        variant="danger"
+        size="sm"
         onClick={onClear}
         disabled={waypointCount === 0}
         title="Wis alle routepunten"
       >
-        <span className="tool-icon">🗑️</span>
-        <span className="tool-text">Wissen</span>
-      </button>
+        <Trash2 className="w-4 h-4" />
+        <span>Wissen</span>
+      </Button>
 
-      <div className="toolbar-divider" />
+      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
 
       {/* Storage & Persistence */}
-      <div className="persistence-group">
-        <button
+      <div className="flex items-center gap-1.5">
+        <Button
           id="btn-save-route"
-          type="button"
-          className="editor-tool-btn primary"
+          variant="primary"
+          size="sm"
           onClick={onSave}
           disabled={waypointCount < 2 || isCalculating}
           title="Route opslaan in jouw bibliotheek"
         >
-          <span className="tool-icon">💾</span>
-          <span className="tool-text">{isCalculating ? 'Berekenen...' : 'Opslaan'}</span>
-        </button>
+          <Save className="w-4 h-4" />
+          <span>{isCalculating ? 'Berekenen...' : 'Opslaan'}</span>
+        </Button>
 
-        <button
+        <Button
           id="btn-open-route-library"
-          type="button"
-          className="editor-tool-btn secondary"
+          variant="secondary"
+          size="sm"
           onClick={onOpenLibrary}
           title="Open opgeslagen routes bibliotheek"
         >
-          <span className="tool-icon">📚</span>
-          <span className="tool-text">Mijn Routes</span>
-        </button>
+          <BookOpen className="w-4 h-4" />
+          <span>Mijn Routes</span>
+        </Button>
       </div>
 
       {isCalculating && (
-        <span className="calculating-indicator" aria-live="polite">
-          <span className="spin">⚙️</span>
+        <span className="flex items-center ml-1 text-sm" aria-live="polite">
+          <Loader2 className="w-4 h-4 animate-spin text-[#24583d]" />
         </span>
       )}
     </div>

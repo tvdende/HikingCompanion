@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
 import { RouteMetadataModal } from './RouteMetadataModal';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Map, Edit3, Trash2, Loader2 } from 'lucide-react';
 
 export interface SavedRouteListItem {
   id: string;
@@ -58,7 +62,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       const data = await res.json();
       setRoutes(data.routes || []);
     } catch (err: any) {
-      console.error('Failed to fetch routes:', err);
+      console.error('Error fetching routes:', err);
       setError(err.message || 'Kon routebibliotheek niet ophalen.');
     } finally {
       setIsLoading(false);
@@ -68,31 +72,30 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchRoutes();
-      setSearchQuery('');
-      setActiveTab('all');
     }
   }, [isOpen]);
 
   const handleDelete = async (routeId: string, routeTitle: string) => {
-    if (!window.confirm(`Weet je zeker dat je route "${routeTitle}" wilt verwijderen?`)) {
-      return;
-    }
+    const confirmed = window.confirm(
+      `Weet je zeker dat je "${routeTitle}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
+    );
+    if (!confirmed) return;
 
     try {
       setDeletingId(routeId);
       const res = await fetch(`/api/routes/${routeId}`, {
         method: 'DELETE',
+        headers: { Accept: 'application/json' },
         credentials: 'include',
       });
 
       if (!res.ok) {
-        throw new Error('Verwijderen mislukt.');
+        throw new Error('Kon route niet verwijderen.');
       }
 
       setRoutes((prev) => prev.filter((r) => r.id !== routeId));
     } catch (err: any) {
-      console.error('Failed to delete route:', err);
-      alert(err.message || 'Fout bij het verwijderen van de route.');
+      alert(err.message || 'Fout bij verwijderen van route.');
     } finally {
       setDeletingId(null);
     }
@@ -104,32 +107,32 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       await onSelectRoute(routeId);
       onClose();
     } catch (err: any) {
-      console.error('Failed to load route:', err);
       alert(err.message || 'Kon route niet inladen.');
     } finally {
       setLoadingRouteId(null);
     }
   };
 
-  const handleMetadataSaved = (updated: SavedRouteListItem) => {
+  const handleMetadataSaved = (updatedRoute: SavedRouteListItem) => {
     setRoutes((prev) =>
-      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
+      prev.map((r) => (r.id === updatedRoute.id ? { ...r, ...updatedRoute } : r))
     );
+    setEditingRoute(null);
   };
 
-  // Filtered routes calculation
+  // Filtered Routes calculation
   const filteredRoutes = useMemo(() => {
     return routes.filter((r) => {
-      // Status filter
+      // 1. Status Filter
       if (activeTab === 'draft' && r.status !== 'draft') return false;
       if (activeTab === 'definitive' && r.status !== 'definitive') return false;
 
-      // Search query
-      if (searchQuery.trim().length > 0) {
-        const query = searchQuery.toLowerCase();
-        const matchesTitle = r.title.toLowerCase().includes(query);
-        const matchesLocation = (r.location || '').toLowerCase().includes(query);
-        const matchesDesc = (r.description || '').toLowerCase().includes(query);
+      // 2. Search Query Filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = r.title.toLowerCase().includes(q);
+        const matchesLocation = r.location?.toLowerCase().includes(q);
+        const matchesDesc = r.description?.toLowerCase().includes(q);
         return matchesTitle || matchesLocation || matchesDesc;
       }
 
@@ -137,8 +140,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
     });
   }, [routes, activeTab, searchQuery]);
 
-  const draftCount = routes.filter((r) => r.status === 'draft').length;
-  const definitiveCount = routes.filter((r) => r.status === 'definitive').length;
+  const draftCount = useMemo(() => routes.filter((r) => r.status === 'draft').length, [routes]);
+  const definitiveCount = useMemo(() => routes.filter((r) => r.status === 'definitive').length, [routes]);
 
   if (!isOpen) return null;
 
@@ -151,15 +154,15 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
         aria-modal="true"
         aria-labelledby="library-modal-title"
       >
-        <div className="modal-content route-library-card" style={{ maxWidth: '780px', width: '95%' }}>
+        <div className="modal-content max-w-[780px] w-[95%]">
           <div className="modal-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.4rem' }}>📚</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">📚</span>
               <div>
                 <h2 id="library-modal-title" className="modal-title">
                   Route Management & Bibliotheek
                 </h2>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                <p className="text-xs text-[#576359] m-0">
                   Beheer je concepten, definitieve routes en prijsstelling
                 </p>
               </div>
@@ -177,89 +180,76 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
           {error && (
             <div
               id="library-error-banner"
-              className="error-message"
+              className="error-message m-4 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
               role="alert"
-              style={{ margin: '1rem' }}
             >
               ⚠️ {error}
             </div>
           )}
 
           {/* Search Bar & Filter Tabs */}
-          <div style={{ padding: '0.85rem 1.25rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}>🔍</span>
-                <input
-                  id="library-search-input"
-                  type="text"
-                  className="form-input"
-                  style={{ paddingLeft: '2rem' }}
-                  placeholder="Zoek op routenaam, regio of omschrijving..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+          <div className="px-5 py-3 flex flex-col gap-3 border-b border-[#e5e2da]">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60">🔍</span>
+              <Input
+                id="library-search-input"
+                type="text"
+                className="pl-9"
+                placeholder="Zoek op routenaam, regio of omschrijving..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '4px' }}>
-              <button
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <Button
                 id="tab-filter-all"
-                type="button"
-                className={`btn btn-sm ${activeTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                variant={activeTab === 'all' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setActiveTab('all')}
               >
                 Alle Routes ({routes.length})
-              </button>
-              <button
+              </Button>
+              <Button
                 id="tab-filter-draft"
-                type="button"
-                className={`btn btn-sm ${activeTab === 'draft' ? 'btn-primary' : 'btn-secondary'}`}
-                style={
-                  activeTab === 'draft'
-                    ? { background: 'rgba(234, 179, 8, 0.25)', borderColor: 'rgba(234, 179, 8, 0.6)', color: '#fef08a' }
-                    : {}
-                }
+                variant={activeTab === 'draft' ? 'primary' : 'secondary'}
+                size="sm"
+                className={activeTab === 'draft' ? 'bg-amber-600 border-amber-600' : ''}
                 onClick={() => setActiveTab('draft')}
               >
                 🟡 Concepten ({draftCount})
-              </button>
-              <button
+              </Button>
+              <Button
                 id="tab-filter-definitive"
-                type="button"
-                className={`btn btn-sm ${activeTab === 'definitive' ? 'btn-primary' : 'btn-secondary'}`}
-                style={
-                  activeTab === 'definitive'
-                    ? { background: 'rgba(34, 197, 94, 0.25)', borderColor: 'rgba(34, 197, 94, 0.6)', color: '#bbf7d0' }
-                    : {}
-                }
+                variant={activeTab === 'definitive' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setActiveTab('definitive')}
               >
                 🟢 Definitief ({definitiveCount})
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="modal-body route-library-body" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+          <div className="modal-body max-h-[420px] overflow-y-auto px-5 py-3">
             {isLoading ? (
-              <div className="loading-state" style={{ textAlign: 'center', padding: '2.5rem' }}>
-                <span className="spin" style={{ display: 'inline-block', fontSize: '1.75rem', marginBottom: '0.5rem' }}>⚙️</span>
-                <p>Routes laden uit database...</p>
+              <div className="text-center py-10">
+                <span className="inline-block text-2xl mb-2 animate-spin">⚙️</span>
+                <p className="text-sm text-[#576359]">Routes laden uit database...</p>
               </div>
             ) : filteredRoutes.length === 0 ? (
-              <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>🗺️</span>
-                <p style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+              <div className="text-center py-12 px-4 text-[#576359]">
+                <span className="text-4xl block mb-3">🗺️</span>
+                <p className="font-bold text-base text-[#1b261e] mb-1">
                   {routes.length === 0 ? 'Nog geen opgeslagen routes' : 'Geen routes gevonden voor dit filter'}
                 </p>
-                <p style={{ fontSize: '0.875rem' }}>
+                <p className="text-sm">
                   {routes.length === 0
                     ? 'Teken of importeer een route en klik op Opslaan om deze in je bibliotheek te bewaren.'
                     : 'Pas je zoekopdracht of statusfilter aan.'}
                 </p>
               </div>
             ) : (
-              <ul id="saved-routes-list" className="saved-routes-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }}>
+              <ul id="saved-routes-list" className="flex flex-col gap-3 py-2 list-none">
                 {filteredRoutes.map((r) => {
                   const isSelected = r.id === currentRouteId;
                   const isDefinitive = r.status === 'definitive';
@@ -272,112 +262,83 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                   return (
                     <li
                       key={r.id}
-                      className={`saved-route-item ${isSelected ? 'active-route-item' : ''}`}
-                      style={{
-                        padding: '1rem',
-                        borderRadius: 'var(--radius-md)',
-                        background: isSelected ? 'rgba(14, 165, 233, 0.12)' : 'var(--bg-surface-elevated)',
-                        border: isSelected ? '1px solid rgba(14, 165, 233, 0.5)' : '1px solid var(--border-color)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                      }}
+                      className={`p-4 rounded-xl border flex flex-col gap-2 transition-all ${
+                        isSelected
+                          ? 'bg-[#f2f7f4] border-[#24583d] shadow-xs'
+                          : 'bg-white border-[#e5e2da] hover:bg-[#faf9f6]'
+                      }`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <h4 className="saved-route-name" style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-base font-bold text-[#1b261e] m-0">
                               {r.title}
                             </h4>
-                            {isSelected && <span className="active-badge" style={{ fontSize: '0.7rem' }}>Actief</span>}
-                            <span
-                              className="status-badge"
-                              style={{
-                                fontSize: '0.7rem',
-                                padding: '2px 8px',
-                                borderRadius: '99px',
-                                fontWeight: 700,
-                                background: isDefinitive ? 'rgba(34, 197, 94, 0.18)' : 'rgba(234, 179, 8, 0.18)',
-                                color: isDefinitive ? '#4ade80' : '#facc15',
-                                border: isDefinitive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)',
-                              }}
-                            >
+                            {isSelected && <Badge variant="default">Actief</Badge>}
+                            <Badge variant={isDefinitive ? 'success' : 'secondary'}>
                               {isDefinitive ? '🟢 Definitief' : '🟡 Concept'}
-                            </span>
-                            <span
-                              className="price-badge"
-                              style={{
-                                fontSize: '0.7rem',
-                                padding: '2px 8px',
-                                borderRadius: '99px',
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                color: 'var(--text-main)',
-                              }}
-                            >
+                            </Badge>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
                               {r.priceEur && r.priceEur > 0 ? `€${r.priceEur.toFixed(2)}` : 'Gratis'}
                             </span>
                           </div>
 
                           {r.location && (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--primary-400)', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <p className="text-xs text-[#576359] mt-1 flex items-center gap-1">
                               <span>📍</span>
                               <span>{r.location}</span>
                             </p>
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                          <button
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
                             id={`btn-load-route-${r.id}`}
-                            type="button"
-                            className="btn btn-primary btn-sm"
+                            variant="primary"
+                            size="sm"
                             onClick={() => handleSelect(r.id)}
                             disabled={loadingRouteId === r.id}
                             title="Route inladen op de kaart"
                           >
-                            {loadingRouteId === r.id ? 'Laden...' : '🗺️ Openen'}
-                          </button>
-                          <button
+                            <Map className="w-3.5 h-3.5" />
+                            <span>{loadingRouteId === r.id ? 'Laden...' : 'Openen'}</span>
+                          </Button>
+                          <Button
                             id={`btn-edit-metadata-${r.id}`}
-                            type="button"
-                            className="btn btn-secondary btn-sm"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => setEditingRoute(r)}
                             title="Metadata, omschrijving en prijs bewerken"
                           >
-                            ✏️ Beheren
-                          </button>
-                          <button
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Beheren</span>
+                          </Button>
+                          <Button
                             id={`btn-delete-route-${r.id}`}
-                            type="button"
-                            className="btn btn-danger-subtle btn-sm icon-only"
+                            variant="danger"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => handleDelete(r.id, r.title)}
                             disabled={deletingId === r.id}
                             title="Route verwijderen"
                             aria-label={`Verwijder ${r.title}`}
                           >
-                            {deletingId === r.id ? '⏳' : '🗑️'}
-                          </button>
+                            {deletingId === r.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
                         </div>
                       </div>
 
                       {r.description && (
-                        <p
-                          style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--text-muted)',
-                            margin: '2px 0 0',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                        >
+                        <p className="text-xs text-[#576359] line-clamp-2 m-0">
                           {r.description}
                         </p>
                       )}
 
-                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      <div className="flex gap-4 text-xs text-[#798a80] mt-0.5">
                         <span>📏 {r.totalDistanceKm} km</span>
                         <span>📅 Gewijzigd op {formattedDate}</span>
                       </div>
@@ -388,23 +349,22 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
             )}
           </div>
 
-          <div className="modal-actions" style={{ justifyContent: 'space-between', padding: '1rem 1.25rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
+          <div className="modal-actions justify-between px-5 py-4 border-t border-[#e5e2da] mt-1">
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={fetchRoutes}
               disabled={isLoading}
               title="Vernieuwen"
             >
               🔄 Vernieuwen
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
+            </Button>
+            <Button
+              variant="secondary"
               onClick={onClose}
             >
               Sluiten
-            </button>
+            </Button>
           </div>
         </div>
       </div>

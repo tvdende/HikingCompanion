@@ -46,6 +46,26 @@ The PWA Service Worker SHALL:
 The frontend UI SHALL:
 - Request push notification permission contextually (e.g. when the user starts live navigation or inspects weather warnings), rather than bombarding users on initial page load.
 - Dispatch notifications specifically for:
+  - Daily morning briefings for active multi-day treks
   - Severe weather alerts along active or saved routes (thunderstorms, heavy wind/rain)
   - Route modifications and comments by trail creators
 - Show an in-app notification center bell in the navigation bar displaying recent notifications with read/unread status and direct links to the relevant route or alert.
+
+### Requirement: Automated Daily Morning Briefing (Cloudflare Worker Cron Trigger)
+The system SHALL support automated daily morning briefings (Section 4.7):
+- A Cloudflare Worker Cron Trigger (`scheduled` event) SHALL execute daily (default 07:00 AM, user-configurable in settings between 05:00 and 09:00 AM)
+- For every user currently on an active scheduled multi-day trek:
+  - Identify today's planned stage number, distance, and elevation profile
+  - Query the stage surface breakdown and Open-Meteo weather forecast for that day
+  - Compose and dispatch a personalized Web Push notification:
+    `"Goedemorgen! Vandaag etappe {stageNumber} ({distanceKm} km). {weatherEmoji} {temp}°C, {weatherDesc}. Tik om je route te openen."`
+- Tapping the notification SHALL open the PWA directly on today's stage in Companion Mode with an interactive `MorningBriefingCard` presenting:
+  - Daily distance & estimated hiking duration
+  - Terrain/surface breakdown for that specific stage (e.g. 75% unpaved, 25% paved)
+  - Time-block weather forecasts (morning, afternoon, evening) with precipitation probability and wind speed
+
+#### Scenario: Hiker receives morning briefing on trail
+- GIVEN a hiker on Day 3 of the GR20 with a scheduled morning notification at 07:00
+- WHEN the Cloudflare Worker cron fires at 07:00 AM
+- THEN the hiker receives a push notification summarizing today's 16.5 km mountain stage and sunny weather
+- AND tapping the notification launches Companion mode directly on Stage 3 with the full briefing

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Save } from 'lucide-react';
 
 export interface RouteMetadataModalProps {
   isOpen: boolean;
@@ -62,28 +65,30 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
 
     try {
       const res = await fetch(`/api/routes/${route.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
-          description: description.trim(),
-          location: location.trim(),
+          description: description.trim() || null,
+          location: location.trim() || null,
           status,
           priceEur: parsedPrice,
         }),
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Opslaan van routegegevens mislukt.');
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Kon routemetadata niet bijwerken.');
       }
 
-      const data = await res.json();
-      onSaveSuccess(data.route || { ...route, title, description, location, status, priceEur: parsedPrice });
+      const updated = await res.json();
+      onSaveSuccess(updated.route || { ...route, title, description, location, status, priceEur: parsedPrice });
       onClose();
     } catch (err: any) {
-      console.error('Failed to update route metadata:', err);
       setError(err.message || 'Fout bij opslaan.');
     } finally {
       setIsSubmitting(false);
@@ -96,21 +101,21 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
       className="modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="route-metadata-modal-title"
+      aria-labelledby="metadata-modal-title"
     >
-      <div className="modal-content" style={{ maxWidth: '520px' }}>
+      <div className="modal-content max-w-[560px]">
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>⚙️</span>
-            <h2 id="route-metadata-modal-title" className="modal-title">
-              Route Beheren & Metadata
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚙️</span>
+            <h2 id="metadata-modal-title" className="modal-title">
+              Route Beheren & Status
             </h2>
           </div>
           <button
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Sluiten"
+            aria-label="Sluit dialoog"
           >
             ✕
           </button>
@@ -119,24 +124,22 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
         {error && (
           <div
             id="metadata-error-banner"
-            className="error-message"
+            className="error-message mx-5 my-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
             role="alert"
-            style={{ margin: '1rem' }}
           >
             ⚠️ {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 1.25rem' }}>
+          <div className="px-5 flex flex-col gap-3.5">
             <div className="form-group">
-              <label htmlFor="metadata-title-input" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
+              <label htmlFor="metadata-title-input" className="form-label">
                 Routetitel *
               </label>
-              <input
+              <Input
                 id="metadata-title-input"
                 type="text"
-                className="form-input"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Bijv. Veluwezoom Etappe 1"
@@ -144,17 +147,16 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="form-group">
-                <label htmlFor="metadata-status-select" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
+                <label htmlFor="metadata-status-select" className="form-label">
                   Status
                 </label>
                 <select
                   id="metadata-status-select"
-                  className="form-input"
+                  className="form-input cursor-pointer"
                   value={status}
                   onChange={(e) => setStatus(e.target.value as RouteStatus)}
-                  style={{ cursor: 'pointer' }}
                 >
                   <option value="draft">🟡 Concept (Draft)</option>
                   <option value="definitive">🟢 Definitief (Klaar)</option>
@@ -162,15 +164,14 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="metadata-price-input" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
+                <label htmlFor="metadata-price-input" className="form-label">
                   Prijs (€)
                 </label>
-                <input
+                <Input
                   id="metadata-price-input"
                   type="number"
                   step="0.01"
                   min="0"
-                  className="form-input"
                   value={priceEur}
                   onChange={(e) => setPriceEur(e.target.value)}
                   placeholder="0.00"
@@ -179,13 +180,12 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="metadata-location-input" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
+              <label htmlFor="metadata-location-input" className="form-label">
                 Regio / Locatie
               </label>
-              <input
+              <Input
                 id="metadata-location-input"
                 type="text"
-                className="form-input"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Bijv. Veluwezoom, Gelderland"
@@ -193,7 +193,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="metadata-description-textarea" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
+              <label htmlFor="metadata-description-textarea" className="form-label">
                 Omschrijving & Route-informatie
               </label>
               <textarea
@@ -203,28 +203,28 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Beschrijf de bezienswaardigheden, ondergrond en bijzonderheden van deze route..."
-                style={{ resize: 'vertical' }}
               />
             </div>
           </div>
 
-          <div className="modal-actions" style={{ justifyContent: 'flex-end', padding: '1rem 1.25rem', gap: '0.5rem' }}>
-            <button
+          <div className="modal-actions px-5 py-4 mt-2">
+            <Button
               type="button"
-              className="btn btn-secondary"
+              variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
             >
               Annuleren
-            </button>
-            <button
+            </Button>
+            <Button
               id="btn-save-metadata"
               type="submit"
-              className="btn btn-primary"
+              variant="primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Opslaan...' : '💾 Wijzigingen Opslaan'}
-            </button>
+              <Save className="w-4 h-4" />
+              <span>{isSubmitting ? 'Opslaan...' : 'Wijzigingen Opslaan'}</span>
+            </Button>
           </div>
         </form>
       </div>
