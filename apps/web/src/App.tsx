@@ -33,10 +33,12 @@ import { RouteMetadataModal } from './components/RouteMetadataModal';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
+import { useTranslation } from './i18n';
 import { Download, Plus, Check, Edit3, Settings, Save, BookOpen } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const { t, formatPriceEur } = useTranslation();
   const [mode, setMode] = useState<AppMode>('planner');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -89,7 +91,7 @@ export const App: React.FC = () => {
         const singlePt = waypoints[0].coordinate;
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
-          title: currentRoute?.title || 'Nieuwe Route',
+          title: currentRoute?.title || t('planner.defaultRouteTitle'),
           description: currentRoute?.description,
           location: currentRoute?.location,
           status: currentRoute?.status || 'draft',
@@ -436,7 +438,7 @@ export const App: React.FC = () => {
       setIsEditing(true);
     } catch (err: any) {
       console.error('GPX parse/stitching error:', err);
-      setFileError(err.message || 'Kon de GPX bestanden niet verwerken of aan elkaar koppelen.');
+      setFileError(err.message || t('planner.errorGpxProcess'));
     }
   };
 
@@ -469,7 +471,7 @@ export const App: React.FC = () => {
     if (files.length > 0) {
       handleGpxFiles(files, false);
     } else {
-      setFileError('Alleen .gpx bestanden worden ondersteund.');
+      setFileError(t('planner.errorGpxOnly'));
     }
   };
 
@@ -498,7 +500,7 @@ export const App: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to export GPX:', err);
-      alert('Er is een fout opgetreden bij het exporteren van de route.');
+      alert(t('planner.errorGpxExport'));
     }
   };
 
@@ -568,21 +570,21 @@ export const App: React.FC = () => {
               <div id="drop-zone-overlay" className="drag-drop-overlay">
                 <div className="drop-zone-card">
                   <span className="drop-icon">📂</span>
-                  <h3>Laat je GPX bestand(en) hier los</h3>
-                  <p>Meerdere bestanden worden automatisch aan elkaar gekoppeld tot één route</p>
+                  <h3>{t('planner.dropZoneTitle')}</h3>
+                  <p>{t('planner.dropZoneSubtitle')}</p>
                 </div>
               </div>
             )}
 
             {/* Planner Mode Overlay Panel */}
             {mode === 'planner' && (
-              <aside id="planner-panel" className="planner-sidebar" aria-label="Route Planner">
+              <aside id="planner-panel" className="planner-sidebar" aria-label={t('planner.sidebarTitle')}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-[#1b261e]">
-                    Route Planner
+                    {t('planner.sidebarTitle')}
                   </h2>
                   <Badge variant="secondary">
-                    Desktop Modus
+                    {t('planner.desktopModeBadge')}
                   </Badge>
                 </div>
 
@@ -597,16 +599,16 @@ export const App: React.FC = () => {
                     <div className="route-header-row">
                       <div>
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          <Badge variant="default">Actieve Route</Badge>
+                          <Badge variant="default">{t('planner.activeRouteBadge')}</Badge>
                           <Badge
                             id="active-route-status-badge"
                             variant={currentRoute.status === 'definitive' ? 'success' : 'secondary'}
                           >
-                            {currentRoute.status === 'definitive' ? '🟢 Definitief' : '🟡 Concept'}
+                            {currentRoute.status === 'definitive' ? t('planner.statusDefinitiveBadge') : t('planner.statusDraftBadge')}
                           </Badge>
                           {currentRoute.priceEur !== undefined && currentRoute.priceEur > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
-                              €{currentRoute.priceEur.toFixed(2)}
+                              {formatPriceEur(currentRoute.priceEur)}
                             </span>
                           )}
                         </div>
@@ -624,7 +626,7 @@ export const App: React.FC = () => {
                         type="button"
                         className="clear-route-btn"
                         onClick={handleClear}
-                        title="Route sluiten"
+                        title={t('planner.closeRouteTooltip')}
                       >
                         ✕
                       </button>
@@ -632,32 +634,32 @@ export const App: React.FC = () => {
 
                     <div className="trail-stats-grid">
                       <div className="trail-stat-box">
-                        <span className="stat-label">Afstand</span>
+                        <span className="stat-label">{t('planner.statDistance')}</span>
                         <span id="stat-total-distance" className="stat-num">
-                          {currentRoute.totalDistanceKm} km
+                          {currentRoute.totalDistanceKm} {t('common.km')}
                         </span>
                       </div>
                       <div className="trail-stat-box">
-                        <span className="stat-label">Stijgen</span>
+                        <span className="stat-label">{t('planner.statGain')}</span>
                         <span id="stat-elevation-gain" className="stat-num text-gain">
-                          +{currentRoute.elevationMetrics?.elevationGainMeters ?? 0} m
+                          +{currentRoute.elevationMetrics?.elevationGainMeters ?? 0} {t('common.m')}
                         </span>
                       </div>
                       <div className="trail-stat-box">
-                        <span className="stat-label">Etappes</span>
+                        <span className="stat-label">{t('planner.statStages')}</span>
                         <span id="stat-stage-count" className="stat-num">
                           {currentRoute.stages.length}
                         </span>
                       </div>
                       <div className="trail-stat-box">
-                        <span className="stat-label">Punten</span>
+                        <span className="stat-label">{t('planner.statPoints')}</span>
                         <span id="stat-point-count" className="stat-num">
                           {waypoints.length > 0
-                            ? `${waypoints.length} wps`
+                            ? `${waypoints.length} ${t('common.wps')}`
                             : `${currentRoute.stages.reduce(
                                 (acc: number, s) => acc + s.coordinates.length,
                                 0
-                              )} pts`}
+                              )} ${t('common.pts')}`}
                         </span>
                       </div>
                     </div>
@@ -670,7 +672,7 @@ export const App: React.FC = () => {
                         onClick={handleExportGpx}
                       >
                         <Download className="w-4 h-4" />
-                        <span>Download GPX</span>
+                        <span>{t('planner.btnExportGpx')}</span>
                       </Button>
                       <Button
                         id="btn-append-gpx"
@@ -678,10 +680,10 @@ export const App: React.FC = () => {
                         size="sm"
                         className="w-full"
                         onClick={triggerAppendGpx}
-                        title="Extra GPX aan deze route toevoegen en koppelen"
+                        title={t('planner.tooltipAppendGpx')}
                       >
                         <Plus className="w-4 h-4" />
-                        <span>GPX Toevoegen</span>
+                        <span>{t('planner.btnAppendGpx')}</span>
                       </Button>
                     </div>
 
@@ -705,7 +707,7 @@ export const App: React.FC = () => {
                       >
                         {isEditing ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
                         <span>
-                          {isEditing ? 'Afronden' : 'Punten slepen'}
+                          {isEditing ? t('planner.btnFinishEditing') : t('planner.btnDragPoints')}
                         </span>
                       </Button>
                       <Button
@@ -714,10 +716,10 @@ export const App: React.FC = () => {
                         size="sm"
                         className="flex-1"
                         onClick={() => setIsMetadataModalOpen(true)}
-                        title="Beheer titel, status, omschrijving en prijs"
+                        title={t('planner.tooltipManageStatus')}
                       >
                         <Settings className="w-4 h-4" />
-                        <span>Beheer & Status</span>
+                        <span>{t('planner.btnManageStatus')}</span>
                       </Button>
                     </div>
 
@@ -731,7 +733,7 @@ export const App: React.FC = () => {
                         disabled={isCalculating}
                       >
                         <Save className="w-4 h-4" />
-                        <span>Opslaan</span>
+                        <span>{t('planner.btnSave')}</span>
                       </Button>
                       <Button
                         id="btn-open-route-library-sidebar"
@@ -741,15 +743,14 @@ export const App: React.FC = () => {
                         onClick={() => setIsLibraryModalOpen(true)}
                       >
                         <BookOpen className="w-4 h-4" />
-                        <span>Bibliotheek</span>
+                        <span>{t('planner.btnLibrary')}</span>
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <>
                     <p className="text-xs text-[#576359] leading-relaxed">
-                      Klik op de kaart om punten te verbinden, of importeer één of meerdere GPX-bestanden
-                      om te navigeren, koppelen en analyseren.
+                      {t('planner.emptyPrompt')}
                     </p>
 
                     <div className="flex flex-col gap-2">
@@ -760,7 +761,7 @@ export const App: React.FC = () => {
                         onClick={() => setIsEditing(true)}
                       >
                         <span>✏️</span>
-                        <span>Nieuwe Route Tekenen</span>
+                        <span>{t('planner.btnDrawNew')}</span>
                       </Button>
 
                       <Button
@@ -770,7 +771,7 @@ export const App: React.FC = () => {
                         onClick={triggerNewGpx}
                       >
                         <span>📂</span>
-                        <span>GPX Route(s) Importeren</span>
+                        <span>{t('planner.btnImportGpx')}</span>
                       </Button>
 
                       <Button
@@ -780,7 +781,7 @@ export const App: React.FC = () => {
                         onClick={() => setIsLibraryModalOpen(true)}
                       >
                         <span>📚</span>
-                        <span>Mijn Opgeslagen Routes</span>
+                        <span>{t('planner.btnMySavedRoutes')}</span>
                       </Button>
                     </div>
                   </>
@@ -798,10 +799,10 @@ export const App: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="text-xs font-bold text-[#24583d] uppercase tracking-wider">
-                      Wandelmodus Actief
+                      {t('hud.modeActive')}
                     </span>
                     <h3 className="text-lg font-extrabold text-[#1b261e] mt-0.5">
-                      {currentRoute ? currentRoute.title : 'Live Navigatie'}
+                      {currentRoute ? currentRoute.title : t('hud.liveNavigation')}
                     </h3>
                   </div>
                   <span className="text-xl">🧭</span>
@@ -812,7 +813,7 @@ export const App: React.FC = () => {
                     <div className="stat-value" id="hud-stat-distance">
                       {currentRoute ? currentRoute.totalDistanceKm : '0.0'}
                     </div>
-                    <div className="stat-label">Afstand (km)</div>
+                    <div className="stat-label">{t('hud.distance')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-value" id="hud-stat-elevation">
@@ -820,13 +821,13 @@ export const App: React.FC = () => {
                         ? `+${currentRoute.elevationMetrics?.elevationGainMeters ?? 0}m`
                         : '--'}
                     </div>
-                    <div className="stat-label">Hoogtemeters</div>
+                    <div className="stat-label">{t('hud.elevation')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-value" id="hud-stat-surface">
                       --%
                     </div>
-                    <div className="stat-label">Onverhard</div>
+                    <div className="stat-label">{t('hud.unpaved')}</div>
                   </div>
                 </div>
               </section>
@@ -844,7 +845,7 @@ export const App: React.FC = () => {
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
         onSave={handleSaveRoute}
-        defaultTitle={currentRoute?.title || 'Mijn Wandelroute'}
+        defaultTitle={currentRoute?.title || t('saveModal.defaultRouteTitle')}
         defaultDescription={currentRoute?.description || ''}
         defaultLocation={currentRoute?.location || ''}
         defaultStatus={currentRoute?.status || 'draft'}

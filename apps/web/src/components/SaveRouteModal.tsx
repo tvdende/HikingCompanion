@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
+import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -36,7 +37,8 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
   distanceKm,
   pointCount,
 }) => {
-  const [title, setTitle] = useState(defaultTitle || 'Mijn Wandelroute');
+  const { t, formatDistance } = useTranslation();
+  const [title, setTitle] = useState(defaultTitle || t('saveModal.defaultRouteTitle'));
   const [description, setDescription] = useState(defaultDescription);
   const [location, setLocation] = useState(defaultLocation);
   const [status, setStatus] = useState<RouteStatus>(defaultStatus);
@@ -46,14 +48,14 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setTitle(defaultTitle || 'Mijn Wandelroute');
+      setTitle(defaultTitle || t('saveModal.defaultRouteTitle'));
       setDescription(defaultDescription);
       setLocation(defaultLocation);
       setStatus(defaultStatus);
       setPriceEur(defaultPriceEur.toFixed(2));
       setError(null);
     }
-  }, [isOpen, defaultTitle, defaultDescription, defaultLocation, defaultStatus, defaultPriceEur]);
+  }, [isOpen, defaultTitle, defaultDescription, defaultLocation, defaultStatus, defaultPriceEur, t]);
 
   if (!isOpen) return null;
 
@@ -61,13 +63,13 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
     e.preventDefault();
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setError('Geef de route een geldige naam.');
+      setError(t('saveModal.errTitleRequired'));
       return;
     }
 
     const parsedPrice = parseFloat(priceEur);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
-      setError('Voer een geldige prijs in euro in.');
+      setError(t('saveModal.errPriceInvalid'));
       return;
     }
 
@@ -84,7 +86,7 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Failed to save route:', err);
-      setError(err.message || 'Kon route niet opslaan in de database.');
+      setError(err.message || t('saveModal.errSaveFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -103,14 +105,14 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xl">💾</span>
             <h2 id="save-modal-title" className="modal-title">
-              Route Opslaan
+              {t('saveModal.title')}
             </h2>
           </div>
           <button
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Sluit dialoog"
+            aria-label={t('saveModal.closeAria')}
           >
             ✕
           </button>
@@ -126,14 +128,14 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
           <div className="px-5 flex flex-col gap-3.5">
             <div className="form-group">
               <label htmlFor="input-route-title" className="form-label">
-                Naam van de route *
+                {t('saveModal.labelTitle')}
               </label>
               <Input
                 id="input-route-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="bijv. Veluwezoom Rondwandeling"
+                placeholder={t('saveModal.placeholderTitle')}
                 required
                 autoFocus
                 maxLength={100}
@@ -143,7 +145,7 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div className="form-group">
                 <label htmlFor="save-route-status" className="form-label">
-                  Status
+                  {t('saveModal.labelStatus')}
                 </label>
                 <select
                   id="save-route-status"
@@ -151,14 +153,14 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
                   value={status}
                   onChange={(e) => setStatus(e.target.value as RouteStatus)}
                 >
-                  <option value="draft">🟡 Concept (Draft)</option>
-                  <option value="definitive">🟢 Definitief (Klaar)</option>
+                  <option value="draft">{t('saveModal.statusDraftOption')}</option>
+                  <option value="definitive">{t('saveModal.statusDefinitiveOption')}</option>
                 </select>
               </div>
 
               <div className="form-group">
                 <label htmlFor="save-route-price" className="form-label">
-                  Prijs (€)
+                  {t('saveModal.labelPrice')}
                 </label>
                 <Input
                   id="save-route-price"
@@ -174,20 +176,20 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
 
             <div className="form-group">
               <label htmlFor="save-route-location" className="form-label">
-                Regio / Locatie
+                {t('saveModal.labelLocation')}
               </label>
               <Input
                 id="save-route-location"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="bijv. Gelderland, Veluwe"
+                placeholder={t('saveModal.placeholderLocation')}
               />
             </div>
 
             <div className="form-group">
               <label htmlFor="save-route-description" className="form-label">
-                Omschrijving (optioneel)
+                {t('saveModal.labelDescription')}
               </label>
               <textarea
                 id="save-route-description"
@@ -195,17 +197,17 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Korte toelichting of etappe-informatie..."
+                placeholder={t('saveModal.placeholderDescription')}
               />
             </div>
 
             <div className="route-save-summary-stats mt-1">
               <div className="summary-stat-item">
-                <span className="summary-label">Afstand</span>
-                <span className="summary-value">{distanceKm.toFixed(2)} km</span>
+                <span className="summary-label">{t('saveModal.statDistance')}</span>
+                <span className="summary-value">{formatDistance(distanceKm)}</span>
               </div>
               <div className="summary-stat-item">
-                <span className="summary-label">Routepunten</span>
+                <span className="summary-label">{t('saveModal.statPoints')}</span>
                 <span className="summary-value">{pointCount}</span>
               </div>
             </div>
@@ -219,7 +221,7 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Annuleren
+              {t('saveModal.btnCancel')}
             </Button>
             <Button
               id="btn-confirm-save-route"
@@ -227,7 +229,7 @@ export const SaveRouteModal: React.FC<SaveRouteModalProps> = ({
               variant="primary"
               disabled={isSubmitting || !title.trim()}
             >
-              {isSubmitting ? 'Opslaan...' : 'Route Opslaan'}
+              {isSubmitting ? t('saveModal.saving') : t('saveModal.btnSave')}
             </Button>
           </div>
         </form>

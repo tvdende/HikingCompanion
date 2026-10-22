@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { HikeRoute, Coordinate, RouteWaypoint } from '@hiking-companion/core';
+import { useTranslation } from '../i18n';
 
 export interface MapCanvasProps {
   route?: HikeRoute | null;
@@ -24,6 +25,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   onInsertWaypoint,
   onLocationFound,
 }) => {
+  const { t } = useTranslation();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -280,8 +282,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       const titleEl = document.createElement('div');
       titleEl.className = 'waypoint-popup-header';
-      titleEl.textContent = `Punt ${idx + 1} ${
-        isStart ? '(Start)' : isFinish ? '(Finish)' : ''
+      titleEl.textContent = `${t('map.point', { number: idx + 1 })} ${
+        isStart ? `(${t('map.start')})` : isFinish ? `(${t('map.finish')})` : ''
       }`;
       popupEl.appendChild(titleEl);
 
@@ -293,7 +295,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       const delBtn = document.createElement('button');
       delBtn.className = 'waypoint-popup-delete-btn';
       delBtn.type = 'button';
-      delBtn.textContent = '🗑️ Verwijder punt';
+      delBtn.textContent = t('map.deletePoint');
       delBtn.onclick = (e) => {
         e.stopPropagation();
         popup.remove();
@@ -317,7 +319,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
         const splitEl = document.createElement('div');
         splitEl.className = 'route-split-handle';
-        splitEl.title = 'Tussenpunt toevoegen';
+        splitEl.title = t('map.addIntermediatePoint');
         splitEl.textContent = '+';
 
         splitEl.addEventListener('click', (e) => {
@@ -369,7 +371,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             } else {
               staticStartMarkerRef.current = new maplibregl.Marker({ color: '#10b981' })
                 .setLngLat(firstCoord)
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(`Start: ${route.title}`))
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(t('map.startPrefix', { title: route.title })))
                 .addTo(map);
             }
 
@@ -379,7 +381,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             } else {
               staticEndMarkerRef.current = new maplibregl.Marker({ color: '#ef4444' })
                 .setLngLat(lastCoord)
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setText('Finish'))
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(t('map.finish')))
                 .addTo(map);
             }
 
@@ -429,7 +431,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      alert('Geolocatie wordt niet ondersteund door deze browser.');
+      alert(t('map.geoNotSupported'));
       return;
     }
 
@@ -482,8 +484,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         type="button"
         className="map-locate-btn"
         onClick={handleLocateMe}
-        title="Toon mijn huidige locatie"
-        aria-label="Toon mijn huidige locatie"
+        title={t('map.locateMeTooltip')}
+        aria-label={t('map.locateMeTooltip')}
         disabled={isLocating}
       >
         {isLocating ? '⏳' : '📍'}

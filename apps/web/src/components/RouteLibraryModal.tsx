@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
+import { useTranslation } from '../i18n';
 import { RouteMetadataModal } from './RouteMetadataModal';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -30,6 +31,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
   onSelectRoute,
   currentRouteId,
 }) => {
+  const { t, locale, formatDistance, formatPriceEur } = useTranslation();
   const [routes, setRoutes] = useState<SavedRouteListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,16 +56,16 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
 
       if (!res.ok) {
         if (res.status === 401) {
-          throw new Error('Log eerst in om je routebibliotheek te bekijken.');
+          throw new Error(t('libraryModal.loginRequired'));
         }
-        throw new Error('Kon routes niet laden.');
+        throw new Error(t('libraryModal.fetchError'));
       }
 
       const data = await res.json();
       setRoutes(data.routes || []);
     } catch (err: any) {
       console.error('Error fetching routes:', err);
-      setError(err.message || 'Kon routebibliotheek niet ophalen.');
+      setError(err.message || t('libraryModal.fetchError'));
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +79,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
 
   const handleDelete = async (routeId: string, routeTitle: string) => {
     const confirmed = window.confirm(
-      `Weet je zeker dat je "${routeTitle}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
+      t('libraryModal.deleteConfirm', { title: routeTitle })
     );
     if (!confirmed) return;
 
@@ -90,12 +92,12 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       });
 
       if (!res.ok) {
-        throw new Error('Kon route niet verwijderen.');
+        throw new Error(t('libraryModal.deleteError'));
       }
 
       setRoutes((prev) => prev.filter((r) => r.id !== routeId));
     } catch (err: any) {
-      alert(err.message || 'Fout bij verwijderen van route.');
+      alert(err.message || t('libraryModal.deleteError'));
     } finally {
       setDeletingId(null);
     }
@@ -107,7 +109,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       await onSelectRoute(routeId);
       onClose();
     } catch (err: any) {
-      alert(err.message || 'Kon route niet inladen.');
+      alert(err.message || t('libraryModal.loadError'));
     } finally {
       setLoadingRouteId(null);
     }
@@ -160,10 +162,10 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
               <span className="text-2xl">📚</span>
               <div>
                 <h2 id="library-modal-title" className="modal-title">
-                  Route Management & Bibliotheek
+                  {t('libraryModal.title')}
                 </h2>
                 <p className="text-xs text-[#576359] m-0">
-                  Beheer je concepten, definitieve routes en prijsstelling
+                  {t('libraryModal.subtitle')}
                 </p>
               </div>
             </div>
@@ -171,7 +173,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
               type="button"
               className="modal-close-btn"
               onClick={onClose}
-              aria-label="Sluit bibliotheek"
+              aria-label={t('libraryModal.closeAria')}
             >
               ✕
             </button>
@@ -195,7 +197,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 id="library-search-input"
                 type="text"
                 className="pl-9"
-                placeholder="Zoek op routenaam, regio of omschrijving..."
+                placeholder={t('libraryModal.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -208,7 +210,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 size="sm"
                 onClick={() => setActiveTab('all')}
               >
-                Alle Routes ({routes.length})
+                {t('libraryModal.tabAll', { count: routes.length })}
               </Button>
               <Button
                 id="tab-filter-draft"
@@ -217,7 +219,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 className={activeTab === 'draft' ? 'bg-amber-600 border-amber-600' : ''}
                 onClick={() => setActiveTab('draft')}
               >
-                🟡 Concepten ({draftCount})
+                {t('libraryModal.tabDraft', { count: draftCount })}
               </Button>
               <Button
                 id="tab-filter-definitive"
@@ -225,7 +227,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 size="sm"
                 onClick={() => setActiveTab('definitive')}
               >
-                🟢 Definitief ({definitiveCount})
+                {t('libraryModal.tabDefinitive', { count: definitiveCount })}
               </Button>
             </div>
           </div>
@@ -234,18 +236,20 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
             {isLoading ? (
               <div className="text-center py-10">
                 <span className="inline-block text-2xl mb-2 animate-spin">⚙️</span>
-                <p className="text-sm text-[#576359]">Routes laden uit database...</p>
+                <p className="text-sm text-[#576359]">{t('libraryModal.loading')}</p>
               </div>
             ) : filteredRoutes.length === 0 ? (
               <div className="text-center py-12 px-4 text-[#576359]">
                 <span className="text-4xl block mb-3">🗺️</span>
                 <p className="font-bold text-base text-[#1b261e] mb-1">
-                  {routes.length === 0 ? 'Nog geen opgeslagen routes' : 'Geen routes gevonden voor dit filter'}
+                  {routes.length === 0
+                    ? t('libraryModal.emptyTitleNoRoutes')
+                    : t('libraryModal.emptyTitleNoMatch')}
                 </p>
                 <p className="text-sm">
                   {routes.length === 0
-                    ? 'Teken of importeer een route en klik op Opslaan om deze in je bibliotheek te bewaren.'
-                    : 'Pas je zoekopdracht of statusfilter aan.'}
+                    ? t('libraryModal.emptySubtitleNoRoutes')
+                    : t('libraryModal.emptySubtitleNoMatch')}
                 </p>
               </div>
             ) : (
@@ -253,11 +257,14 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 {filteredRoutes.map((r) => {
                   const isSelected = r.id === currentRouteId;
                   const isDefinitive = r.status === 'definitive';
-                  const formattedDate = new Date(r.updatedAt).toLocaleDateString('nl-NL', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  });
+                  const formattedDate = new Date(r.updatedAt).toLocaleDateString(
+                    locale === 'nl' ? 'nl-NL' : 'en-US',
+                    {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    }
+                  );
 
                   return (
                     <li
@@ -274,12 +281,12 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             <h4 className="text-base font-bold text-[#1b261e] m-0">
                               {r.title}
                             </h4>
-                            {isSelected && <Badge variant="default">Actief</Badge>}
+                            {isSelected && <Badge variant="default">{t('libraryModal.badgeActive')}</Badge>}
                             <Badge variant={isDefinitive ? 'success' : 'secondary'}>
-                              {isDefinitive ? '🟢 Definitief' : '🟡 Concept'}
+                              {isDefinitive ? '🟢 ' + t('common.definitive') : '🟡 ' + t('common.draft')}
                             </Badge>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
-                              {r.priceEur && r.priceEur > 0 ? `€${r.priceEur.toFixed(2)}` : 'Gratis'}
+                              {r.priceEur && r.priceEur > 0 ? formatPriceEur(r.priceEur) : t('common.free')}
                             </span>
                           </div>
 
@@ -298,20 +305,20 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             size="sm"
                             onClick={() => handleSelect(r.id)}
                             disabled={loadingRouteId === r.id}
-                            title="Route inladen op de kaart"
+                            title={t('libraryModal.tooltipLoad')}
                           >
                             <Map className="w-3.5 h-3.5" />
-                            <span>{loadingRouteId === r.id ? 'Laden...' : 'Openen'}</span>
+                            <span>{loadingRouteId === r.id ? t('common.loading') : t('libraryModal.btnOpen')}</span>
                           </Button>
                           <Button
                             id={`btn-edit-metadata-${r.id}`}
                             variant="secondary"
                             size="sm"
                             onClick={() => setEditingRoute(r)}
-                            title="Metadata, omschrijving en prijs bewerken"
+                            title={t('libraryModal.tooltipManage')}
                           >
                             <Edit3 className="w-3.5 h-3.5" />
-                            <span>Beheren</span>
+                            <span>{t('libraryModal.btnManage')}</span>
                           </Button>
                           <Button
                             id={`btn-delete-route-${r.id}`}
@@ -320,8 +327,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             className="h-8 w-8"
                             onClick={() => handleDelete(r.id, r.title)}
                             disabled={deletingId === r.id}
-                            title="Route verwijderen"
-                            aria-label={`Verwijder ${r.title}`}
+                            title={t('libraryModal.tooltipDelete')}
+                            aria-label={t('libraryModal.ariaDelete', { title: r.title })}
                           >
                             {deletingId === r.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -339,8 +346,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                       )}
 
                       <div className="flex gap-4 text-xs text-[#798a80] mt-0.5">
-                        <span>📏 {r.totalDistanceKm} km</span>
-                        <span>📅 Gewijzigd op {formattedDate}</span>
+                        <span>📏 {formatDistance(r.totalDistanceKm)}</span>
+                        <span>📅 {t('libraryModal.modifiedOn', { date: formattedDate })}</span>
                       </div>
                     </li>
                   );
@@ -355,15 +362,15 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
               size="sm"
               onClick={fetchRoutes}
               disabled={isLoading}
-              title="Vernieuwen"
+              title={t('common.refresh')}
             >
-              🔄 Vernieuwen
+              {t('libraryModal.btnRefresh')}
             </Button>
             <Button
               variant="secondary"
               onClick={onClose}
             >
-              Sluiten
+              {t('libraryModal.btnClose')}
             </Button>
           </div>
         </div>

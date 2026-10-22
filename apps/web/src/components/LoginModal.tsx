@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import type { UserRole } from '@hiking-companion/core';
 import { Button } from './ui/button';
 import { User, Compass, Shield, X } from 'lucide-react';
@@ -35,6 +36,7 @@ interface LoginModalProps {
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { loginWithMock } = useAuth();
+  const { t } = useTranslation();
   const [loadingRole, setLoadingRole] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -69,7 +71,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           <div className="modal-title-wrap">
             <span className="modal-icon">🥾</span>
             <h2 id="login-modal-title" className="modal-title">
-              Inloggen bij Hiking Companion
+              {t('authModal.title')}
             </h2>
           </div>
           <button
@@ -77,14 +79,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Sluiten"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <p className="modal-description">
-          Log in of registreer je gratis met je bestaande account. Er is geen handmatige goedkeuring nodig, je kunt meteen aan de slag!
+          {t('authModal.description')}
         </p>
 
         <div className="oauth-buttons-container">
@@ -94,7 +96,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             className="oauth-btn google-btn"
           >
             <GoogleIcon className="w-5 h-5 shrink-0" />
-            <span>Verdergaan met Google</span>
+            <span>{t('authModal.continueGoogle')}</span>
           </a>
 
           <a
@@ -103,7 +105,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             className="oauth-btn microsoft-btn"
           >
             <MicrosoftIcon className="w-5 h-5 shrink-0" />
-            <span>Verdergaan met Microsoft</span>
+            <span>{t('authModal.continueMicrosoft')}</span>
           </a>
 
           <a
@@ -112,18 +114,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             className="oauth-btn github-btn"
           >
             <GitHubIcon className="w-5 h-5 shrink-0" />
-            <span>Verdergaan met GitHub</span>
+            <span>{t('authModal.continueGithub')}</span>
           </a>
         </div>
 
         {import.meta.env.DEV && (
           <>
             <div className="modal-divider">
-              <span>OF VOOR LOKALE ONTWIKKELING</span>
+              <span>{t('authModal.devDivider')}</span>
             </div>
 
             <div className="mock-login-section">
-              <p className="mock-subtitle">Direct inloggen als testrol:</p>
+              <p className="mock-subtitle">{t('authModal.mockSubtitle')}</p>
               <div className="mock-btn-group">
                 <Button
                   id="btn-mock-user"
@@ -134,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   onClick={() => handleMockLogin('user')}
                 >
                   <User className="w-4 h-4 text-[#24583d]" />
-                  <span>Wandelaar</span>
+                  <span>{t('authModal.mockHiker')}</span>
                 </Button>
 
                 <Button
@@ -146,7 +148,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   onClick={() => handleMockLogin('planner')}
                 >
                   <Compass className="w-4 h-4 text-[#24583d]" />
-                  <span>Route Planner</span>
+                  <span>{t('authModal.mockPlanner')}</span>
                 </Button>
 
                 <Button
@@ -158,7 +160,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   onClick={() => handleMockLogin('admin')}
                 >
                   <Shield className="w-4 h-4 text-amber-600" />
-                  <span>Beheerder</span>
+                  <span>{t('authModal.mockAdmin')}</span>
                 </Button>
               </div>
             </div>
