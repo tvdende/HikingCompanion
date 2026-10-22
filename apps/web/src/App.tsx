@@ -103,6 +103,55 @@ export const App: React.FC = () => {
     trackCount: 1,
   });
 
+  // Resizable Sidebar State with persistent localStorage
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('hiking_planner_sidebar_width');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 340 && parsed <= 680) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return 390;
+  });
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+
+  const handleStartResizeSidebar = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+  };
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const minWidth = 340;
+      const maxWidth = Math.min(680, window.innerWidth - 60);
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - 16));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+      try {
+        localStorage.setItem('hiking_planner_sidebar_width', sidebarWidth.toString());
+      } catch {
+        // Ignore
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar, sidebarWidth]);
+
   // Calculate dynamic stage metrics (hiking vs transit breakdown)
   const stageMetrics = calculateStageMetrics(stages, segments, waypoints);
 
@@ -848,6 +897,7 @@ export const App: React.FC = () => {
               activeStageId={activeStageId}
               isEditing={isEditing}
               focusRouteTrigger={focusRouteTrigger}
+              sidebarWidth={sidebarWidth}
               onAddWaypoint={handleAddWaypoint}
               onMoveWaypoint={handleMoveWaypoint}
               onDeleteWaypoint={handleDeleteWaypoint}
@@ -869,7 +919,22 @@ export const App: React.FC = () => {
 
             {/* Planner Mode Overlay Panel */}
             {mode === 'planner' && (
-              <aside id="planner-panel" className="planner-sidebar" aria-label={t('planner.sidebarTitle')}>
+              <aside
+                id="planner-panel"
+                className="planner-sidebar"
+                aria-label={t('planner.sidebarTitle')}
+                style={{ width: `${sidebarWidth}px` }}
+              >
+                {/* Drag-to-resize handle */}
+                <div
+                  className={`sidebar-resizer ${isResizingSidebar ? 'is-resizing' : ''}`}
+                  onMouseDown={handleStartResizeSidebar}
+                  title={t('stages.resizeSidebarTooltip')}
+                  aria-label={t('stages.resizeSidebarTooltip')}
+                >
+                  <div className="resizer-pill" />
+                </div>
+
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-[#1b261e]">
                     {t('planner.sidebarTitle')}

@@ -21,6 +21,7 @@ export interface MapCanvasProps {
   activeStageId?: string | null;
   isEditing?: boolean;
   focusRouteTrigger?: number;
+  sidebarWidth?: number;
   onAddWaypoint?: (coord: Coordinate) => void;
   onMoveWaypoint?: (waypointId: string, newCoord: Coordinate) => void;
   onDeleteWaypoint?: (waypointId: string) => void;
@@ -38,6 +39,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   activeStageId,
   isEditing = false,
   focusRouteTrigger,
+  sidebarWidth = 390,
   onAddWaypoint,
   onMoveWaypoint,
   onDeleteWaypoint,
@@ -48,6 +50,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   onLocationFound,
 }) => {
   const { t } = useTranslation();
+  const sidebarWidthRef = useRef(sidebarWidth);
+  sidebarWidthRef.current = sidebarWidth;
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -130,6 +134,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
 
     const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+    const currentSidebarWidth = sidebarWidthRef.current || 390;
     map.fitBounds(
       [
         [minLng, minLat],
@@ -139,7 +144,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         padding: {
           top: 80,
           bottom: 80,
-          left: isDesktop ? 370 : 40,
+          left: isDesktop ? currentSidebarWidth + 30 : 40,
           right: 50,
         },
         maxZoom: 15,

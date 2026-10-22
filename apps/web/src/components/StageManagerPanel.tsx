@@ -108,7 +108,8 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
             onClick={onZoomFullRoute}
             title={t('stages.viewFullRoute')}
           >
-            {t('stages.viewFullRoute')}
+            <span>🔍</span>
+            <span>{t('stages.viewFullRoute')}</span>
           </button>
           <button
             type="button"
@@ -117,7 +118,8 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
             onClick={onAddStage}
             title={t('stages.newStage')}
           >
-            {t('stages.newStage')}
+            <span>➕</span>
+            <span>{t('stages.newStage')}</span>
           </button>
         </div>
       </div>
@@ -128,7 +130,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
           <strong>{stageMetrics.totalDistanceKm} {t('common.km')}</strong> {t('common.total').toLowerCase()}
         </span>
         {stageMetrics.transitDistanceKm > 0 && (
-          <span>
+          <span className="stages-summary-transit">
             ({stageMetrics.hikingDistanceKm} {t('common.km')} {t('stages.hikingDistance').toLowerCase()} •{' '}
             {stageMetrics.transitDistanceKm} {t('common.km')} {t('stages.transitDistance').toLowerCase()})
           </span>
@@ -155,8 +157,17 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
               onDrop={(e) => handleDrop(e, stage.id)}
               onClick={() => onSelectStage(stage.id)}
             >
-              {/* Card Header: Color Badge, Title Input, Reorder Controls */}
+              {/* Row 1: Drag handle, Stage Badge, Inline Title, Reorder Controls */}
               <div className="stage-card-header">
+                <span
+                  className="stage-drag-handle"
+                  title={t('stages.dragToReorder')}
+                  aria-label={t('stages.dragToReorder')}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  ⋮⋮
+                </span>
+
                 <span
                   className="stage-badge-tag"
                   style={{ backgroundColor: stageColor }}
@@ -197,17 +208,10 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                   >
                     ▼
                   </button>
-                  <span
-                    className="stage-drag-handle"
-                    title={t('stages.dragToReorder')}
-                    aria-label={t('stages.dragToReorder')}
-                  >
-                    ⋮⋮
-                  </span>
                 </div>
               </div>
 
-              {/* Metrics & Transport Type Row */}
+              {/* Row 2: Metrics, Transport Select, and Stage Action Buttons */}
               <div className="stage-card-row">
                 <div className="stage-card-metrics">
                   <span className="metric-item">
@@ -223,7 +227,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                   </span>
                 </div>
 
-                <div onClick={(e) => e.stopPropagation()}>
+                <div className="stage-card-controls" onClick={(e) => e.stopPropagation()}>
                   <select
                     className="transport-select"
                     value={stage.transportType || 'foot'}
@@ -239,15 +243,39 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                     <option value="train">🚆 {t('stages.transportTrain')}</option>
                     <option value="ferry">⛴️ {t('stages.transportFerry')}</option>
                   </select>
+
+                  <div className="stage-card-actions">
+                    {idx > 0 && (
+                      <button
+                        type="button"
+                        className="stage-action-btn merge"
+                        onClick={() => onMergeStage(stage.id)}
+                        title={t('stages.mergeWithPrevious')}
+                      >
+                        🔗
+                      </button>
+                    )}
+
+                    {stages.length > 1 && (
+                      <button
+                        type="button"
+                        className="stage-action-btn delete"
+                        onClick={() => handleDelete(stage)}
+                        title={t('stages.deleteStage')}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Optional Notes (Overnight, transit, remarks) */}
-              <div onClick={(e) => e.stopPropagation()}>
+              {/* Row 3 (Optional / Expandable): Notes Input */}
+              <div className="stage-card-notes-container" onClick={(e) => e.stopPropagation()}>
                 {isNotesOpen ? (
-                  <textarea
+                  <input
+                    type="text"
                     className="stage-notes-input"
-                    rows={2}
                     placeholder={t('stages.notesPlaceholder')}
                     value={stage.notes || ''}
                     onChange={(e) =>
@@ -257,36 +285,10 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                 ) : (
                   <button
                     type="button"
-                    className="stage-action-btn"
-                    style={{ color: 'var(--text-muted)', padding: '2px 0' }}
+                    className="stage-notes-toggle-btn"
                     onClick={() => setExpandedNotesStageId(stage.id)}
                   >
-                    + {t('stages.notesPlaceholder')}
-                  </button>
-                )}
-              </div>
-
-              {/* Card Actions: Merge with previous / Delete */}
-              <div className="stage-card-actions" onClick={(e) => e.stopPropagation()}>
-                {idx > 0 && (
-                  <button
-                    type="button"
-                    className="stage-action-btn merge"
-                    onClick={() => onMergeStage(stage.id)}
-                    title={t('stages.mergeWithPrevious')}
-                  >
-                    {t('stages.mergeWithPrevious')}
-                  </button>
-                )}
-
-                {stages.length > 1 && (
-                  <button
-                    type="button"
-                    className="stage-action-btn delete"
-                    onClick={() => handleDelete(stage)}
-                    title={t('stages.deleteStage')}
-                  >
-                    {t('stages.deleteStage')}
+                    + 💬 {t('stages.notesPlaceholder')}
                   </button>
                 )}
               </div>

@@ -59,7 +59,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   return (
     <div
       id="route-editor-toolbar"
-      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
+      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-40 shadow-md max-w-[95vw] overflow-x-auto"
       role="toolbar"
       aria-label={t('editorToolbar.ariaToolbar')}
     >

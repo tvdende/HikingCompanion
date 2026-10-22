@@ -40,6 +40,19 @@ Wandelaars kunnen per etappe het vervoertype instellen:
 - **Toon hele route**: Een prominente knop `🔍 Toon hele route` bovenaan het paneel herstelt met één klik het zicht naar de complete meerdaagse tocht.
 - **Contextuele zichtbaarheid**: Tijdens het bewerken van een specifieke etappe blijft de rest van de route altijd subtiel zichtbaar op de kaart ($0.55$ opacity).
 
+### 2.5 Ergonomische UI & Resizable Zijbalk
+- **Sleepbare breedte (Resizable Sidebar)**:
+  - De planner-zijbalk kan naar wens breder of smaller worden gesleept via een drag-handle aan de rechterrand (`cursor: col-resize`).
+  - **Minimale breedte**: 340px (voorkomt tekst-wrapping of afgekapte knoppen).
+  - **Maximale breedte**: 680px (zodat de kaart altijd dominant en goed zichtbaar blijft).
+  - **Persistente voorkeur**: De ingestelde breedte wordt automatisch bewaard in `localStorage` (`hiking_planner_sidebar_width`).
+  - **Dynamische camerazoom**: Bij het aanroepen van `fitBounds` op de route of een etappe wordt de linker padding dynamisch berekend op basis van de exacte breedte van de zijbalk (`sidebarWidth + 30px`), zodat routes altijd perfect gecentreerd blijven in het zichtbare kaartdeel.
+- **Compacte Etappe-kaarten**:
+  - Halvering van de verticale kaarthoogte voor snel en ergonomisch beheer van lange meerdaagse tochten.
+  - **Rij 1**: Drag-handle (`⋮⋮`), etappe-kleurbadge (`E1`), inline bewerkbare routetitel en verplaatsknoppen (`▲` / `▼`).
+  - **Rij 2**: Afstand (`km`), hoogtemeters (`+m`), puntentelling (`pt`), compacte vervoertype-selector (`🥾 Wandelen`, `🚌 Bus`, `🚆 Trein`, `⛴️ Veerpont`), en directe actieknoppen voor samenvoegen (`🔗`) en verwijderen (`🗑️`).
+  - **Rij 3 (Optioneel)**: Notitie-invoerveld voor overnachtingen en reisinformatie.
+
 ---
 
 ## 3. Datamodel & Types
