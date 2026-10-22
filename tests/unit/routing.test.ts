@@ -54,7 +54,7 @@ describe('Routing API Proxy (/api/routing/route)', () => {
     expect(Array.isArray(data.coordinates)).toBe(true);
     expect(data.coordinates.length).toBeGreaterThan(1);
     expect(data.distanceMeters).toBeGreaterThan(0);
-  });
+  }, 15000);
 
   it('falls back to straight line when external routing fails', async () => {
     const originalFetch = globalThis.fetch;

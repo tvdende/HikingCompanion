@@ -899,6 +899,74 @@ html, body, #root {
   flex-direction: column;
 }
 
+.library-modal-card {
+  width: 96vw;
+  max-width: 1240px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .library-modal-card {
+    width: 98vw;
+    padding: 1rem;
+    max-height: 95vh;
+  }
+}
+
+.library-table-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.library-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+  min-width: 820px;
+}
+
+.library-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 12px 14px;
+  background: #f8f7f4;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.library-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0ede6;
+  vertical-align: middle;
+}
+
+.library-table tr:hover {
+  background: #fbfaf7;
+}
+
+.library-table tr.active-route-row {
+  background: #f3f8f5;
+}
+
+.library-table tr.active-route-row:hover {
+  background: #ebf4ef;
+}
+
 .modal-header {
   display: flex;
   align-items: center;

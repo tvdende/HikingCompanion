@@ -275,4 +275,28 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
     const distStat = page.locator('#stat-total-distance');
     await expect(distStat).toBeVisible();
   });
+
+  test('displays spacious routes table and exports route directly as GPX file', async ({
+    page,
+  }) => {
+    // Open library
+    await page.locator('#btn-open-route-library-sidebar').click();
+    const libraryModal = page.locator('#route-library-modal');
+    await expect(libraryModal).toBeVisible();
+
+    // Verify spacious table structure and header columns
+    const table = page.locator('#saved-routes-table');
+    await expect(table).toBeVisible();
+    await expect(table.locator('thead th')).toHaveCount(7);
+
+    // Verify export button exists and triggers GPX file download
+    const exportBtn = page.locator('#btn-export-route-route-concept-1');
+    await expect(exportBtn).toBeVisible();
+
+    const downloadPromise = page.waitForEvent('download');
+    await exportBtn.click();
+
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('Veluwezoom Verkenning.gpx');
+  });
 });

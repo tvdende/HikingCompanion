@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import type { RouteStatus } from '@hiking-companion/core';
+import type { RouteStatus, HikeRoute } from '@hiking-companion/core';
+import { serializeToGpx } from '@hiking-companion/core';
 import { useTranslation } from '../i18n';
 import { RouteMetadataModal } from './RouteMetadataModal';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { Map, Edit3, Trash2, Loader2 } from 'lucide-react';
+import { Map, Edit3, Trash2, Loader2, Download, Search, RefreshCw, Layers } from 'lucide-react';
 
 export interface SavedRouteListItem {
   id: string;
@@ -15,6 +16,8 @@ export interface SavedRouteListItem {
   status: RouteStatus;
   priceEur: number;
   totalDistanceKm: number;
+  stageCount?: number;
+  elevationMetrics?: { elevationGainMeters: number; elevationLossMeters: number } | null;
   updatedAt: string | Date;
 }
 
@@ -37,6 +40,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingRouteId, setLoadingRouteId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   // Filter & Search State
   const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'definitive'>('all');
@@ -115,6 +119,38 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
     }
   };
 
+  const handleExport = async (routeId: string, routeTitle: string) => {
+    try {
+      setExportingId(routeId);
+      const res = await fetch(`/api/routes/${routeId}`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error(t('libraryModal.exportError'));
+      }
+
+      const data = await res.json();
+      const fullRoute: HikeRoute = data.route;
+      const gpxContent = serializeToGpx(fullRoute);
+      const blob = new Blob([gpxContent], { type: 'application/gpx+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(fullRoute.title || routeTitle).replace(/[/\\?%*:|"<>]/g, '-')}.gpx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Failed to export GPX:', err);
+      alert(err.message || t('libraryModal.exportError'));
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   const handleMetadataSaved = (updatedRoute: SavedRouteListItem) => {
     setRoutes((prev) =>
       prev.map((r) => (r.id === updatedRoute.id ? { ...r, ...updatedRoute } : r))
@@ -156,15 +192,16 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
         aria-modal="true"
         aria-labelledby="library-modal-title"
       >
-        <div className="modal-content max-w-[780px] w-[95%]">
+        <div className="modal-content library-modal-card">
+          {/* Modal Header */}
           <div className="modal-header">
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl">📚</span>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">📚</span>
               <div>
-                <h2 id="library-modal-title" className="modal-title">
+                <h2 id="library-modal-title" className="modal-title text-xl font-bold text-[#1b261e]">
                   {t('libraryModal.title')}
                 </h2>
-                <p className="text-xs text-[#576359] m-0">
+                <p className="text-xs text-[#576359] m-0 mt-0.5">
                   {t('libraryModal.subtitle')}
                 </p>
               </div>
@@ -182,7 +219,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
           {error && (
             <div
               id="library-error-banner"
-              className="error-message m-4 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+              className="error-message m-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
               role="alert"
             >
               ⚠️ {error}
@@ -190,24 +227,27 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
           )}
 
           {/* Search Bar & Filter Tabs */}
-          <div className="px-5 py-3 flex flex-col gap-3 border-b border-[#e5e2da]">
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60">🔍</span>
+          <div className="py-2.5 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between border-b border-[#e5e2da] mb-3">
+            <div className="relative flex-1 max-w-md">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60">
+                <Search className="w-4 h-4 text-[#576359]" />
+              </span>
               <Input
                 id="library-search-input"
                 type="text"
-                className="pl-9"
+                className="pl-9 h-9 text-sm"
                 placeholder={t('libraryModal.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
               <Button
                 id="tab-filter-all"
                 variant={activeTab === 'all' ? 'primary' : 'secondary'}
                 size="sm"
+                className="h-8 text-xs"
                 onClick={() => setActiveTab('all')}
               >
                 {t('libraryModal.tabAll', { count: routes.length })}
@@ -216,7 +256,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 id="tab-filter-draft"
                 variant={activeTab === 'draft' ? 'primary' : 'secondary'}
                 size="sm"
-                className={activeTab === 'draft' ? 'bg-amber-600 border-amber-600' : ''}
+                className={`h-8 text-xs ${activeTab === 'draft' ? 'bg-amber-600 border-amber-600' : ''}`}
                 onClick={() => setActiveTab('draft')}
               >
                 {t('libraryModal.tabDraft', { count: draftCount })}
@@ -225,147 +265,212 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                 id="tab-filter-definitive"
                 variant={activeTab === 'definitive' ? 'primary' : 'secondary'}
                 size="sm"
+                className="h-8 text-xs"
                 onClick={() => setActiveTab('definitive')}
               >
                 {t('libraryModal.tabDefinitive', { count: definitiveCount })}
               </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 ml-auto shrink-0"
+                onClick={fetchRoutes}
+                disabled={isLoading}
+                title={t('common.refresh')}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
           </div>
 
-          <div className="modal-body max-h-[420px] overflow-y-auto px-5 py-3">
+          {/* Table Container */}
+          <div className="library-table-container">
             {isLoading ? (
-              <div className="text-center py-10">
-                <span className="inline-block text-2xl mb-2 animate-spin">⚙️</span>
+              <div className="text-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#24583d] mb-3" />
                 <p className="text-sm text-[#576359]">{t('libraryModal.loading')}</p>
               </div>
             ) : filteredRoutes.length === 0 ? (
-              <div className="text-center py-12 px-4 text-[#576359]">
-                <span className="text-4xl block mb-3">🗺️</span>
+              <div className="text-center py-16 px-4 text-[#576359]">
+                <span className="text-5xl block mb-3">🗺️</span>
                 <p className="font-bold text-base text-[#1b261e] mb-1">
                   {routes.length === 0
                     ? t('libraryModal.emptyTitleNoRoutes')
                     : t('libraryModal.emptyTitleNoMatch')}
                 </p>
-                <p className="text-sm">
+                <p className="text-sm max-w-md mx-auto">
                   {routes.length === 0
                     ? t('libraryModal.emptySubtitleNoRoutes')
                     : t('libraryModal.emptySubtitleNoMatch')}
                 </p>
               </div>
             ) : (
-              <ul id="saved-routes-list" className="flex flex-col gap-3 py-2 list-none">
-                {filteredRoutes.map((r) => {
-                  const isSelected = r.id === currentRouteId;
-                  const isDefinitive = r.status === 'definitive';
-                  const formattedDate = new Date(r.updatedAt).toLocaleDateString(
-                    locale === 'nl' ? 'nl-NL' : 'en-US',
-                    {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    }
-                  );
+              <table id="saved-routes-table" className="library-table">
+                <thead>
+                  <tr>
+                    <th>{t('libraryModal.thRoute')}</th>
+                    <th>{t('libraryModal.thStatus')}</th>
+                    <th>{t('libraryModal.thDistance')}</th>
+                    <th>{t('libraryModal.thStages')}</th>
+                    <th>{t('libraryModal.thPrice')}</th>
+                    <th>{t('libraryModal.thModified')}</th>
+                    <th className="text-right">{t('libraryModal.thActions')}</th>
+                  </tr>
+                </thead>
+                <tbody id="saved-routes-list">
+                  {filteredRoutes.map((r) => {
+                    const isSelected = r.id === currentRouteId;
+                    const isDefinitive = r.status === 'definitive';
+                    const formattedDate = new Date(r.updatedAt).toLocaleDateString(
+                      locale === 'nl' ? 'nl-NL' : 'en-US',
+                      {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      }
+                    );
 
-                  return (
-                    <li
-                      key={r.id}
-                      className={`saved-route-item p-4 rounded-xl border flex flex-col gap-2 transition-all ${
-                        isSelected
-                          ? 'bg-[#f2f7f4] border-[#24583d] shadow-xs'
-                          : 'bg-white border-[#e5e2da] hover:bg-[#faf9f6]'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-base font-bold text-[#1b261e] m-0">
-                              {r.title}
-                            </h4>
-                            {isSelected && <Badge variant="default">{t('libraryModal.badgeActive')}</Badge>}
-                            <Badge variant={isDefinitive ? 'success' : 'secondary'}>
-                              {isDefinitive ? '🟢 ' + t('common.definitive') : '🟡 ' + t('common.draft')}
-                            </Badge>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
-                              {r.priceEur && r.priceEur > 0 ? formatPriceEur(r.priceEur) : t('common.free')}
-                            </span>
-                          </div>
-
-                          {r.location && (
-                            <p className="text-xs text-[#576359] mt-1 flex items-center gap-1">
-                              <span>📍</span>
-                              <span>{r.location}</span>
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Button
-                            id={`btn-load-route-${r.id}`}
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleSelect(r.id)}
-                            disabled={loadingRouteId === r.id}
-                            title={t('libraryModal.tooltipLoad')}
-                          >
-                            <Map className="w-3.5 h-3.5" />
-                            <span>{loadingRouteId === r.id ? t('common.loading') : t('libraryModal.btnOpen')}</span>
-                          </Button>
-                          <Button
-                            id={`btn-edit-metadata-${r.id}`}
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setEditingRoute(r)}
-                            title={t('libraryModal.tooltipManage')}
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>{t('libraryModal.btnManage')}</span>
-                          </Button>
-                          <Button
-                            id={`btn-delete-route-${r.id}`}
-                            variant="danger"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleDelete(r.id, r.title)}
-                            disabled={deletingId === r.id}
-                            title={t('libraryModal.tooltipDelete')}
-                            aria-label={t('libraryModal.ariaDelete', { title: r.title })}
-                          >
-                            {deletingId === r.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3.5 h-3.5" />
+                    return (
+                      <tr
+                        key={r.id}
+                        className={`saved-route-item ${isSelected ? 'active-route-row' : ''}`}
+                      >
+                        <td>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-[#1b261e] text-sm hover:text-[#24583d] transition-colors">
+                                {r.title}
+                              </span>
+                              {isSelected && (
+                                <Badge variant="default" className="text-[10px] py-0 px-1.5">
+                                  {t('libraryModal.badgeActive')}
+                                </Badge>
+                              )}
+                            </div>
+                            {r.location && (
+                              <span className="text-xs text-[#576359] flex items-center gap-1">
+                                <span>📍</span>
+                                <span>{r.location}</span>
+                              </span>
                             )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {r.description && (
-                        <p className="text-xs text-[#576359] line-clamp-2 m-0">
-                          {r.description}
-                        </p>
-                      )}
-
-                      <div className="flex gap-4 text-xs text-[#798a80] mt-0.5">
-                        <span>📏 {formatDistance(r.totalDistanceKm)}</span>
-                        <span>📅 {t('libraryModal.modifiedOn', { date: formattedDate })}</span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                            {r.description && (
+                              <span className="text-xs text-[#798a80] line-clamp-1 max-w-[340px]" title={r.description}>
+                                {r.description}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <Badge variant={isDefinitive ? 'success' : 'secondary'}>
+                            {isDefinitive ? '🟢 ' + t('common.definitive') : '🟡 ' + t('common.draft')}
+                          </Badge>
+                        </td>
+                        <td>
+                          <div className="flex flex-col text-xs">
+                            <span className="font-semibold text-[#1b261e]">
+                              {formatDistance(r.totalDistanceKm)}
+                            </span>
+                            {r.elevationMetrics &&
+                              (r.elevationMetrics.elevationGainMeters > 0 ||
+                                r.elevationMetrics.elevationLossMeters > 0) && (
+                                <span className="text-[11px] text-[#576359] font-medium">
+                                  +{r.elevationMetrics.elevationGainMeters}m / -{r.elevationMetrics.elevationLossMeters}m
+                                </span>
+                              )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-medium border border-[#e5e2da] whitespace-nowrap">
+                            <Layers className="w-3 h-3 text-[#576359]" />
+                            {r.stageCount && r.stageCount > 1
+                              ? t('libraryModal.stageMultiple', { count: r.stageCount })
+                              : t('libraryModal.stageSingle')}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da] whitespace-nowrap">
+                            {r.priceEur && r.priceEur > 0 ? formatPriceEur(r.priceEur) : t('common.free')}
+                          </span>
+                        </td>
+                        <td className="text-xs text-[#576359] whitespace-nowrap">
+                          {formattedDate}
+                        </td>
+                        <td>
+                          <div className="flex items-center justify-end gap-1.5 shrink-0">
+                            <Button
+                              id={`btn-load-route-${r.id}`}
+                              variant="primary"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs"
+                              onClick={() => handleSelect(r.id)}
+                              disabled={loadingRouteId === r.id}
+                              title={t('libraryModal.tooltipLoad')}
+                            >
+                              {loadingRouteId === r.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Map className="w-3.5 h-3.5" />
+                              )}
+                              <span>{loadingRouteId === r.id ? t('common.loading') : t('libraryModal.btnOpen')}</span>
+                            </Button>
+                            <Button
+                              id={`btn-export-route-${r.id}`}
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs"
+                              onClick={() => handleExport(r.id, r.title)}
+                              disabled={exportingId === r.id}
+                              title={t('libraryModal.tooltipExport')}
+                            >
+                              {exportingId === r.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                              <span>{t('libraryModal.btnExport')}</span>
+                            </Button>
+                            <Button
+                              id={`btn-edit-metadata-${r.id}`}
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs"
+                              onClick={() => setEditingRoute(r)}
+                              title={t('libraryModal.tooltipManage')}
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>{t('libraryModal.btnManage')}</span>
+                            </Button>
+                            <Button
+                              id={`btn-delete-route-${r.id}`}
+                              variant="danger"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDelete(r.id, r.title)}
+                              disabled={deletingId === r.id}
+                              title={t('libraryModal.tooltipDelete')}
+                              aria-label={t('libraryModal.ariaDelete', { title: r.title })}
+                            >
+                              {deletingId === r.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
 
-          <div className="modal-actions justify-between px-5 py-4 border-t border-[#e5e2da] mt-1">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={fetchRoutes}
-              disabled={isLoading}
-              title={t('common.refresh')}
-            >
-              {t('libraryModal.btnRefresh')}
-            </Button>
+          {/* Modal Footer Actions */}
+          <div className="modal-actions justify-between pt-3 border-t border-[#e5e2da] mt-2">
+            <span className="text-xs text-[#798a80]">
+              {t('libraryModal.tabAll', { count: filteredRoutes.length })}
+            </span>
             <Button
               variant="secondary"
               onClick={onClose}
