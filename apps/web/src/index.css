@@ -1638,6 +1638,356 @@ html, body, #root {
   color: #ffffff;
 }
 
+/* Stage Transition Badges on Map */
+.stage-transition-badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.stage-transition-badge:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.stage-transition-popup {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 190px;
+}
+
+.stage-transition-popup-header {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.stage-popup-merge-btn {
+  background: var(--primary-600);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.stage-popup-merge-btn:hover {
+  background: var(--primary-700);
+}
+
+.waypoint-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.waypoint-popup-split-btn {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.waypoint-popup-split-btn:hover {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.editor-waypoint-marker.is-inactive-stage {
+  opacity: 0.65;
+  transform: scale(0.9);
+}
+
+/* ==========================================================================
+   Stage Manager Panel (Planner Sidebar)
+   ========================================================================== */
+
+.stages-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.stages-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.stages-panel-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stages-count-badge {
+  background: #eeece6;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.stages-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-add-stage,
+.btn-reset-view {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 9px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.btn-add-stage:hover,
+.btn-reset-view:hover {
+  background: #f4f3ef;
+  border-color: var(--primary-600);
+  color: var(--primary-600);
+}
+
+.stages-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 6px 10px;
+  background: #f8f7f4;
+  border-radius: var(--radius-sm);
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.stages-summary-bar strong {
+  color: var(--text-main);
+}
+
+.stage-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.stage-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.stage-card:hover {
+  border-color: #d1cfc7;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stage-card.is-active {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 2px rgba(36, 88, 61, 0.15);
+  background: #fafaf7;
+}
+
+.stage-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.stage-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.725rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  min-width: 28px;
+  letter-spacing: 0.03em;
+}
+
+.stage-title-input {
+  flex: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--text-main);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.stage-title-input:hover,
+.stage-title-input:focus {
+  border-color: var(--border-subtle);
+  background: #ffffff;
+  outline: none;
+}
+
+.stage-reorder-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stage-step-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.1s ease;
+}
+
+.stage-step-btn:hover:not(:disabled) {
+  background: #eeece6;
+  color: var(--text-main);
+}
+
+.stage-step-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.stage-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  padding: 0 2px;
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.stage-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.stage-card-metrics .metric-item strong {
+  color: var(--text-main);
+  margin-right: 2px;
+}
+
+.stage-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.transport-select {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  color: var(--text-main);
+}
+
+.stage-notes-input {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  resize: vertical;
+  min-height: 38px;
+  font-family: inherit;
+}
+
+.stage-notes-input:focus {
+  outline: none;
+  border-color: var(--primary-600);
+}
+
+.stage-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 2px;
+}
+
+.stage-action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.725rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.stage-action-btn.delete {
+  color: #b91c1c;
+}
+.stage-action-btn.delete:hover {
+  background: #fee2e2;
+}
+
+.stage-action-btn.merge {
+  color: var(--primary-600);
+}
+.stage-action-btn.merge:hover {
+  background: #eaf3ed;
+}
+
 /* Mobile Responsive */
 @media (max-width: 640px) {
   .planner-sidebar {
