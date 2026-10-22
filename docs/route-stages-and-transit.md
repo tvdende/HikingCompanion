@@ -84,6 +84,22 @@ Wandelaars kunnen per etappe het vervoertype instellen:
      - `Beheren` (`#btn-edit-metadata-route-{id}`): Opent het metadata- en marktplaatsbeheer dialoogvenster.
      - `Verwijderen` (`#btn-delete-route-{id}`): Verwijdert de route na bevestiging.
 
+### 2.7 Differentiële Segmentcalculatie, Caching & 60fps Drag-Preview
+- **Differentiële segmentmatching (`diffRouteSegments`)**:
+  - Bij elke mutatie in routepunten vergelijkt het systeem de nieuwe puntenparen $(W_i, W_{i+1})$ met de bestaande `segments`.
+  - Ongewijzigde segmenten (identieke waypoint-ID's, routeringsmodus en coördinaten binnen $10^{-6}$ graden) worden direct hergebruikt zonder netwerkoproepen.
+  - Alleen nieuw toegevoegde of gewijzigde segmenten worden als vuil gemarkeerd voor berekening.
+- **Client-Side Segment Cache (`SegmentCache`)**:
+  - LRU-cache in de client (tot 1000 segmenten) met gehashte sleutel(`${fLng},${fLat}_${tLng},${tLat}_${mode}`).
+  - Bidirectionele padresolutie: voetpaden zijn in twee richtingen begaanbaar. Een verzoek voor $A \to B$ wordt direct opgelost als $B \to A$ in de cache staat, inclusief omkering van coördinaten en omwisseling van stijg- en daalmeters.
+  - Undo-, Redo- en routeomkeringsoperaties (`reverseWaypoints`) lossen hierdoor direct op in 0 ms zonder netwerkverkeer.
+- **Optimistische UI Preview & Geïsoleerde Fallback**:
+  - Bij het toevoegen van een punt wordt direct een optimistische rechte lijn getoond (0 ms visuele vertraging), die naadloos overvloeit in de gesnapte padpolygoon zodra de achtergrondberekening gereed is.
+  - Elke segmentberekening is omgeven door een geïsoleerde `try/catch`. Faalt BRouter voor één segment, dan valt alleen dat segment terug naar een rechte lijn; alle andere etappesegmenten behouden hun gesnapte paden.
+- **60fps Waypoint Drag Rubber-Banding**:
+  - Tijdens het verslepen van een waypointmarker (`onDrag`) tekent MapLibre via een dynamische GeoJSON-laag (`drag-preview-source`) lichte gestippelde elastieklijnen naar de voorgaande en opvolgende punten op 60fps zonder netwerkcalls.
+  - De definitieve coördinaten worden pas bij `onDragEnd` gecommit, waarna uitsluitend de 1 of 2 aangrenzende segmenten differentieel worden herberekend.
+
 ---
 
 ## 3. Datamodel & Types

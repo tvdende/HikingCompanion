@@ -7,6 +7,8 @@ import {
   reverseWaypoints,
   flattenRouteCoordinates,
   extractWaypointsFromRoute,
+  diffRouteSegments,
+  createWaypointPairs,
   type RouteWaypoint,
   type RouteSegment,
   type HikeRoute,
@@ -190,4 +192,127 @@ describe('Route Editing Domain Utilities', () => {
       expect(result.segments[0].coordinates.length).toBeGreaterThan(1);
     });
   });
+
+  describe('diffRouteSegments', () => {
+    const seg1: RouteSegment = {
+      id: 'seg-wp-1-wp-2',
+      fromWaypointId: 'wp-1',
+      toWaypointId: 'wp-2',
+      routingMode: 'snap',
+      coordinates: [
+        { lat: 52.0907, lng: 5.1214 },
+        { lat: 52.095, lng: 5.125 },
+        { lat: 52.1, lng: 5.13 },
+      ],
+      distanceMeters: 1200,
+    };
+
+    const seg2: RouteSegment = {
+      id: 'seg-wp-2-wp-3',
+      fromWaypointId: 'wp-2',
+      toWaypointId: 'wp-3',
+      routingMode: 'direct',
+      coordinates: [
+        { lat: 52.1, lng: 5.13 },
+        { lat: 52.11, lng: 5.14 },
+      ],
+      distanceMeters: 1100,
+    };
+
+    it('identifies intact segments when appending a new waypoint', () => {
+      const wp4: RouteWaypoint = {
+        id: 'wp-4',
+        coordinate: { lat: 52.12, lng: 5.15 },
+        routingMode: 'snap',
+      };
+      const waypoints = [wp1, wp2, wp3, wp4];
+      const targetPairs = createWaypointPairs(waypoints);
+
+      const diff = diffRouteSegments([seg1, seg2], targetPairs);
+
+      expect(diff.retainedSegments.size).toBe(2);
+      expect(diff.retainedSegments.get(0)?.id).toBe('seg-wp-1-wp-2');
+      expect(diff.retainedSegments.get(1)?.id).toBe('seg-wp-2-wp-3');
+      expect(diff.dirtyPairs).toHaveLength(1);
+      expect(diff.dirtyPairs[0].index).toBe(2);
+      expect(diff.dirtyPairs[0].from.id).toBe('wp-3');
+      expect(diff.dirtyPairs[0].to.id).toBe('wp-4');
+    });
+
+    it('marks adjacent segments as dirty when inserting an intermediate waypoint', () => {
+      const wpInserted: RouteWaypoint = {
+        id: 'wp-inserted',
+        coordinate: { lat: 52.095, lng: 5.125 },
+        routingMode: 'snap',
+      };
+      // Insert between wp1 and wp2: [wp1, wpInserted, wp2, wp3]
+      const waypoints = [wp1, wpInserted, wp2, wp3];
+      const targetPairs = createWaypointPairs(waypoints);
+
+      const diff = diffRouteSegments([seg1, seg2], targetPairs);
+
+      // (wp1, wpInserted) is dirty
+      // (wpInserted, wp2) is dirty
+      // (wp2, wp3) matches seg2 and is retained at index 2
+      expect(diff.retainedSegments.size).toBe(1);
+      expect(diff.retainedSegments.get(2)?.id).toBe('seg-wp-2-wp-3');
+      expect(diff.dirtyPairs).toHaveLength(2);
+      expect(diff.dirtyPairs[0].index).toBe(0);
+      expect(diff.dirtyPairs[1].index).toBe(1);
+    });
+
+    it('marks incoming and outgoing segments dirty when moving an intermediate waypoint', () => {
+      const movedWp2: RouteWaypoint = {
+        id: 'wp-2',
+        coordinate: { lat: 52.105, lng: 5.135 }, // altered coordinate
+        routingMode: 'snap',
+      };
+      const wp4: RouteWaypoint = {
+        id: 'wp-4',
+        coordinate: { lat: 52.12, lng: 5.15 },
+        routingMode: 'direct',
+      };
+      const seg3: RouteSegment = {
+        id: 'seg-wp-3-wp-4',
+        fromWaypointId: 'wp-3',
+        toWaypointId: 'wp-4',
+        routingMode: 'direct',
+        coordinates: [
+          { lat: 52.11, lng: 5.14 },
+          { lat: 52.12, lng: 5.15 },
+        ],
+        distanceMeters: 1000,
+      };
+
+      const waypoints = [wp1, movedWp2, wp3, wp4];
+      const targetPairs = createWaypointPairs(waypoints);
+
+      const diff = diffRouteSegments([seg1, seg2, seg3], targetPairs);
+
+      // (wp1 -> movedWp2) dirty due to coordinate mismatch
+      // (movedWp2 -> wp3) dirty due to coordinate mismatch
+      // (wp3 -> wp4) retained at index 2
+      expect(diff.retainedSegments.size).toBe(1);
+      expect(diff.retainedSegments.get(2)?.id).toBe('seg-wp-3-wp-4');
+      expect(diff.dirtyPairs).toHaveLength(2);
+      expect(diff.dirtyPairs[0].index).toBe(0);
+      expect(diff.dirtyPairs[1].index).toBe(1);
+    });
+
+    it('marks segment dirty when routingMode is changed', () => {
+      // Change wp2 routingMode to 'direct' instead of 'snap'
+      const modifiedWp2: RouteWaypoint = {
+        ...wp2,
+        routingMode: 'direct',
+      };
+      const targetPairs = createWaypointPairs([wp1, modifiedWp2]);
+
+      const diff = diffRouteSegments([seg1], targetPairs);
+
+      expect(diff.retainedSegments.size).toBe(0);
+      expect(diff.dirtyPairs).toHaveLength(1);
+      expect(diff.dirtyPairs[0].routingMode).toBe('direct');
+    });
+  });
 });
+

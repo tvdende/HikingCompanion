@@ -63,6 +63,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const prevTriggerRef = useRef<number | undefined>(focusRouteTrigger);
   const prevActiveStageIdRef = useRef<string | null | undefined>(activeStageId);
   const hasFittedInitialRef = useRef(false);
+  const waypointsRef = useRef(waypoints);
+  waypointsRef.current = waypoints;
 
   const [isLocating, setIsLocating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -343,10 +345,56 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     []
   );
 
+  const updateDragPreview = useCallback((coordsList: [number, number][][]) => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    const features: GeoJSON.Feature<GeoJSON.LineString>[] = coordsList.map((line) => ({
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: line,
+      },
+    }));
+
+    const data: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
+      type: 'FeatureCollection',
+      features,
+    };
+
+    const source = map.getSource('drag-preview-source') as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(data);
+    } else if (map.isStyleLoaded()) {
+      map.addSource('drag-preview-source', {
+        type: 'geojson',
+        data,
+      });
+      map.addLayer({
+        id: 'drag-preview-layer',
+        type: 'line',
+        source: 'drag-preview-source',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#2563eb',
+          'line-width': 3.5,
+          'line-dasharray': [2, 2],
+          'line-opacity': 0.85,
+        },
+      });
+    }
+  }, []);
+
   const clearRoutePolyline = useCallback(() => {
     const map = mapInstance.current;
     if (!map) return;
 
+    if (map.getLayer('drag-preview-layer')) map.removeLayer('drag-preview-layer');
+    if (map.getSource('drag-preview-source')) map.removeSource('drag-preview-source');
     if (map.getLayer('route-layer-transit')) map.removeLayer('route-layer-transit');
     if (map.getLayer('route-layer-foot')) map.removeLayer('route-layer-foot');
     if (map.getLayer('route-layer-casing')) map.removeLayer('route-layer-casing');
@@ -526,8 +574,25 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       });
       marker.on('drag', () => {
         isMarkerInteractingRef.current = true;
+        const currentLngLat = marker.getLngLat();
+        const cur: [number, number] = [currentLngLat.lng, currentLngLat.lat];
+        const lines: [number, number][][] = [];
+
+        const currentWps = waypointsRef.current;
+        const prevWp = idx > 0 ? currentWps[idx - 1] : null;
+        const nextWp = idx < currentWps.length - 1 ? currentWps[idx + 1] : null;
+
+        if (prevWp) {
+          lines.push([[prevWp.coordinate.lng, prevWp.coordinate.lat], cur]);
+        }
+        if (nextWp) {
+          lines.push([cur, [nextWp.coordinate.lng, nextWp.coordinate.lat]]);
+        }
+
+        updateDragPreview(lines);
       });
       marker.on('dragend', () => {
+        updateDragPreview([]);
         const lngLat = marker.getLngLat();
         onMoveWaypointRef.current?.(wp.id, {
           lat: Number(lngLat.lat.toFixed(6)),

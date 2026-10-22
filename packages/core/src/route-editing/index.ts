@@ -193,3 +193,5 @@ export function extractWaypointsFromRoute(
 }
 
 export * from './stages.js';
+export * from './segment-cache.js';
+export * from './diff.js';
