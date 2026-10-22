@@ -308,13 +308,13 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
               <table id="saved-routes-table" className="library-table">
                 <thead>
                   <tr>
-                    <th>{t('libraryModal.thRoute')}</th>
-                    <th>{t('libraryModal.thStatus')}</th>
-                    <th>{t('libraryModal.thDistance')}</th>
-                    <th>{t('libraryModal.thStages')}</th>
-                    <th>{t('libraryModal.thPrice')}</th>
-                    <th>{t('libraryModal.thModified')}</th>
-                    <th className="text-right">{t('libraryModal.thActions')}</th>
+                    <th className="w-[32%] min-w-[200px]">{t('libraryModal.thRoute')}</th>
+                    <th className="w-[12%] min-w-[100px] whitespace-nowrap">{t('libraryModal.thStatus')}</th>
+                    <th className="w-[12%] min-w-[105px] whitespace-nowrap">{t('libraryModal.thDistance')}</th>
+                    <th className="w-[12%] min-w-[105px] whitespace-nowrap">{t('libraryModal.thStages')}</th>
+                    <th className="w-[10%] min-w-[85px] whitespace-nowrap">{t('libraryModal.thPrice')}</th>
+                    <th className="w-[10%] min-w-[95px] whitespace-nowrap">{t('libraryModal.thModified')}</th>
+                    <th className="w-[12%] min-w-[190px] text-right whitespace-nowrap">{t('libraryModal.thActions')}</th>
                   </tr>
                 </thead>
                 <tbody id="saved-routes-list">
@@ -395,8 +395,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                         <td className="text-xs text-[#576359] whitespace-nowrap">
                           {formattedDate}
                         </td>
-                        <td>
-                          <div className="flex items-center justify-end gap-1.5 shrink-0">
+                        <td className="text-right">
+                          <div className="flex items-center justify-end gap-1.5 shrink-0 whitespace-nowrap">
                             <Button
                               id={`btn-load-route-${r.id}`}
                               variant="primary"
