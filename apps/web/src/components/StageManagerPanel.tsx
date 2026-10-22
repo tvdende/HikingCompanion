@@ -108,8 +108,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
             onClick={onZoomFullRoute}
             title={t('stages.viewFullRoute')}
           >
-            <span>🔍</span>
-            <span>{t('stages.viewFullRoute')}</span>
+            {t('stages.viewFullRoute')}
           </button>
           <button
             type="button"
@@ -118,8 +117,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
             onClick={onAddStage}
             title={t('stages.newStage')}
           >
-            <span>➕</span>
-            <span>{t('stages.newStage')}</span>
+            {t('stages.newStage')}
           </button>
         </div>
       </div>

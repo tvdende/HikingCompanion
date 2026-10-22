@@ -257,6 +257,11 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
       { name: 'etappe-zuid.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(gpx2) },
     ]);
 
+    // Choose to import each file as a separate stage in multi-file modal
+    const separateBtn = page.locator('#btn-choice-separate-stages');
+    await expect(separateBtn).toBeVisible({ timeout: 10000 });
+    await separateBtn.click();
+
     // Active route card should appear with stitched title and 2 stages
     const activeCard = page.locator('#loaded-route-card');
     await expect(activeCard).toBeVisible({ timeout: 10000 });

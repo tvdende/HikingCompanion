@@ -15,6 +15,7 @@ import {
   BookOpen,
   Loader2,
   Crosshair,
+  Settings,
 } from 'lucide-react';
 
 export interface RouteEditorToolbarProps {
@@ -29,11 +30,13 @@ export interface RouteEditorToolbarProps {
   onReverse: () => void;
   onSave: () => void;
   onOpenLibrary: () => void;
+  onOpenMetadata?: () => void;
   onClear: () => void;
   onCenterRoute?: () => void;
   hasRoute?: boolean;
   waypointCount: number;
   isCalculating?: boolean;
+  sidebarWidth?: number;
 }
 
 export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
@@ -48,18 +51,28 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   onReverse,
   onSave,
   onOpenLibrary,
+  onOpenMetadata,
   onClear,
   onCenterRoute,
   hasRoute = false,
   waypointCount,
   isCalculating = false,
+  sidebarWidth,
 }) => {
   const { t } = useTranslation();
+
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 640;
 
   return (
     <div
       id="route-editor-toolbar"
-      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-40 shadow-md max-w-[95vw] overflow-x-auto"
+      style={{
+        left:
+          isDesktop && sidebarWidth
+            ? `calc(${sidebarWidth + 24}px + (100% - ${sidebarWidth + 24}px) / 2)`
+            : undefined,
+      }}
+      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
       role="toolbar"
       aria-label={t('editorToolbar.ariaToolbar')}
     >
@@ -216,6 +229,20 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           <BookOpen className="w-4 h-4" />
           <span>{t('editorToolbar.myRoutes')}</span>
         </Button>
+
+        {onOpenMetadata && (
+          <Button
+            id="btn-edit-metadata-toolbar"
+            variant="secondary"
+            size="sm"
+            onClick={onOpenMetadata}
+            disabled={!hasRoute && waypointCount === 0}
+            title={t('planner.tooltipManageStatus')}
+          >
+            <Settings className="w-4 h-4" />
+            <span>{t('planner.btnManageStatus')}</span>
+          </Button>
+        )}
       </div>
 
       {isCalculating && (

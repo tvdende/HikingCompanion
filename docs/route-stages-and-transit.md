@@ -28,19 +28,33 @@ Wandelaars kunnen per etappe het vervoertype instellen:
 - **Kilometer-splitsing**: In de routestatistieken wordt direct onderscheid gemaakt tussen daadwerkelijke loopkilometers en verplaatsingen met openbaar vervoer:
   $$\text{Totaal: } 45\text{ km} \quad (\text{waarvan } 35\text{ km te voet} \ \bullet \ 10\text{ km OV})$$
 
-### 2.3 GPX Import & Export Pariteit
-- **Append vs. Nieuwe etappe**: Wanneer de gebruiker een GPX uploadt terwijl er al een route actief is, vraagt een dialoogvenster of de punten toegevoegd moeten worden aan de huidige etappe of dat er een nieuwe etappe gestart moet worden.
-- **Multi-track detectie**: GPX-bestanden met meerdere `<trk>` of `<trkseg>` segmenten (zoals complete LAW-routes) worden automatisch herkend. De gebruiker kan kiezen:
-  1. *Als losse etappes importeren* (behoudt de dagetappes inclusief etappenamen en notities).
-  2. *Als één samengevoegde etappe importeren*.
+### 2.3 GPX Import, Multi-File Etappes & Polyline Caching
+- **Multi-File & Multi-Stage Import**: Wanneer één of meerdere GPX-bestanden tegelijk worden geüpload (via bestandsselectie of drag & drop), toont de importdialoog de optie om **elk bestand automatisch als aparte etappe** aan te maken (`1 bestand = 1 etappe`) of samen te voegen tot één doorlopende etappe.
+- **Append vs. Nieuwe etappe**: Wanneer de gebruiker een GPX uploadt terwijl er al een route actief is, vraagt het dialoogvenster of de punten toegevoegd moeten worden aan de huidige etappe of als nieuwe etappe(s) moeten worden toegevoegd met behoud van de bestaande etappes.
+- **Multi-track detectie**: GPX-bestanden met meerdere `<trk>` of `<trkseg>` segmenten (zoals complete LAW-routes) worden automatisch herkend en kunnen als losse etappes of één samengevoegde etappe worden ingelezen.
+- **Polyline Caching & Direct Rendering (Geen Herberekening)**: Zodra een route is berekend of geïmporteerd, worden de exacte GPS-lijncoördinaten per etappe opgeslagen in de database (`stagesJson` en `coordinatesJson`). Bij het heropenen van een route worden de lijnen direct getekend vanuit de bewaarde coördinaten zonder zware herberekening via de externe routerings-API (BRouter). Dit voorkomt ontbrekende etappelijnen, timeouts en onnodig dataverkeer.
 - **GPX 1.1 Export**: Meerdaagse routes worden geëxporteerd met behoud van afzonderlijke `<trk>` elementen, inclusief etappetitels (`<name>`), overnachtingsnotities (`<desc>`) en transporttypes (`<type>`).
 
 ### 2.4 Kaartnavigatie & Dual Camera Views
 - **Inzoomen op etappe**: Klikken op een etappekaart in de zijbalk animeert de camera soepel (`fitBounds`) naar de exacte geografische begrenzing van die etappe, met comfortabele marges rondom de zijbalk.
-- **Toon hele route**: Een prominente knop `🔍 Toon hele route` bovenaan het paneel herstelt met één klik het zicht naar de complete meerdaagse tocht.
+- **Toon hele route**: Een prominente knop bovenaan het etappepaneel herstelt met één klik het zicht naar de complete meerdaagse tocht.
 - **Contextuele zichtbaarheid**: Tijdens het bewerken van een specifieke etappe blijft de rest van de route altijd subtiel zichtbaar op de kaart ($0.55$ opacity).
 
-### 2.5 Ergonomische UI & Resizable Zijbalk
+### 2.5 Ergonomische UI, Floating Toolbar & Resizable Zijbalk
+- **Centrale Zwevende Werkbalk (`RouteEditorToolbar`)**:
+  - Alle algemene routeacties zijn gecentraliseerd in de zwevende balk boven de kaart:
+    - Route bewerken (`Punten slepen / Afronden`)
+    - Routeringsmodus (`Paden / Recht`)
+    - `Ongedaan maken` (Undo) en `Opnieuw uitvoeren` (Redo)
+    - `Centreren op route` (Focus)
+    - `Omdraaien` (Reverse)
+    - `Wissen` (Clear)
+    - `Opslaan` (Save)
+    - `Mijn Routes` (Bibliotheek)
+    - `Beheer & Status` (Metadata, status en prijsbeheer)
+- **Opgeschoonde Linkerzijbalk**:
+  - Dubbele knoppen (Opslaan, Bibliotheek, Beheer & Status, Route bewerken) zijn verwijderd uit de linkerzijbalk om maximale ruimte te bieden aan het etappeoverzicht.
+  - De knoppen `Download GPX` en `GPX toevoegen` staan overzichtelijk en compact naast elkaar in een enkele rij.
 - **Sleepbare breedte (Resizable Sidebar)**:
   - De planner-zijbalk kan naar wens breder of smaller worden gesleept via een drag-handle aan de rechterrand (`cursor: col-resize`).
   - **Minimale breedte**: 340px (voorkomt tekst-wrapping of afgekapte knoppen).

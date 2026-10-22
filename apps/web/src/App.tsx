@@ -43,7 +43,7 @@ import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
-import { Download, Plus, Check, Edit3, Settings, Save, BookOpen } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 
 interface HistorySnapshot {
   waypoints: RouteWaypoint[];
@@ -95,7 +95,7 @@ export const App: React.FC = () => {
   } | null>(null);
   const [gpxModalConfig, setGpxModalConfig] = useState<{
     isOpen: boolean;
-    type: 'append-choice' | 'multi-track';
+    type: 'append-choice' | 'multi-track' | 'multi-file';
     trackCount: number;
   }>({
     isOpen: false,
@@ -181,28 +181,22 @@ export const App: React.FC = () => {
     [stages, activeStageId, history, historyIndex]
   );
 
+  // Skip route recalculation flag (e.g. when opening a pre-computed saved route or importing GPX)
+  const skipRecalculateRef = useRef(false);
+
   // Recalculate route polyline & segments whenever waypoints, routing mode, or stages change
   useEffect(() => {
+    if (skipRecalculateRef.current) {
+      skipRecalculateRef.current = false;
+      return;
+    }
+
     let isCancelled = false;
 
     const updateRoute = async () => {
       if (waypoints.length === 0) {
         setSegments([]);
-        if (currentRoute) {
-          setCurrentRoute({
-            ...currentRoute,
-            totalDistanceKm: 0,
-            stages: stages.map((s) => ({
-              id: s.id,
-              stageNumber: s.stageNumber,
-              title: s.title,
-              notes: s.notes,
-              transportType: s.transportType || 'foot',
-              distanceKm: 0,
-              coordinates: [],
-            })),
-          });
-        }
+        setCurrentRoute(null);
         return;
       }
 
@@ -335,8 +329,22 @@ export const App: React.FC = () => {
               }
             });
 
-            if (stageCoords.length === 0) {
-              stageCoords.push(...stageWps.map((w) => w.coordinate));
+            // Fallback: If segments didn't provide coordinates or routing failed, interpolate straight lines
+            if (stageCoords.length < 2 && stageWps.length >= 2) {
+              stageCoords.length = 0;
+              for (let w = 0; w < stageWps.length - 1; w++) {
+                const line = interpolateStraightLine(
+                  stageWps[w].coordinate,
+                  stageWps[w + 1].coordinate
+                );
+                if (w === 0) {
+                  stageCoords.push(...line);
+                } else {
+                  stageCoords.push(...line.slice(1));
+                }
+              }
+            } else if (stageCoords.length === 0 && stageWps.length === 1) {
+              stageCoords.push(stageWps[0].coordinate);
             }
           }
 
@@ -456,6 +464,7 @@ export const App: React.FC = () => {
   };
 
   const handleClear = () => {
+    skipRecalculateRef.current = true;
     const freshStage: RouteStageDefinition = {
       id: 'stage-1',
       stageNumber: 1,
@@ -540,6 +549,7 @@ export const App: React.FC = () => {
       status: saveData.status || 'draft',
       priceEur: saveData.priceEur ?? 0,
       totalDistanceKm: currentRoute.totalDistanceKm,
+      coordinates: currentRoute.stages.flatMap((s) => s.coordinates || []),
       stages: currentRoute.stages,
       elevationMetrics: currentRoute.elevationMetrics,
       waypoints,
@@ -612,6 +622,7 @@ export const App: React.FC = () => {
       updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
     };
 
+    skipRecalculateRef.current = true;
     setCurrentRoute(loadedRoute);
     setActiveSavedRouteId(r.id);
     setFocusRouteTrigger((prev) => prev + 1);
@@ -630,7 +641,7 @@ export const App: React.FC = () => {
       },
     ]);
     setHistoryIndex(0);
-    setIsEditing(true);
+    setIsEditing(false);
   };
 
   // GPX Import Processing Engine
@@ -668,24 +679,58 @@ export const App: React.FC = () => {
         return;
       }
 
-      if (strategy === 'new-stage' && currentRoute) {
-        // Add as a new stage preserving existing stages
-        const nextNum = stages.length + 1;
-        const newStageId = `stage-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-        const newStageDef: RouteStageDefinition = {
-          id: newStageId,
-          stageNumber: nextNum,
-          title: finalRoute.title || `Etappe ${nextNum}`,
-          transportType: 'foot',
-        };
+      if (
+        (strategy === 'new-stage' || (strategy === 'separate-stages' && currentRoute)) &&
+        currentRoute
+      ) {
+        // Add as separate new stages preserving existing stages
+        const existingStages = [...stages];
+        const newStagesList: RouteStageDefinition[] = [...existingStages];
+        const allNewTaggedWps: RouteWaypoint[] = [];
 
-        const { waypoints: newWps } = extractWaypointsPerStage(finalRoute);
-        const taggedWps = newWps.map((w) => ({ ...w, stageId: newStageId }));
+        const { stages: extractedStages, waypoints: extractedWps } =
+          extractWaypointsPerStage(finalRoute);
+
+        extractedStages.forEach((extStage, idx) => {
+          const nextNum = newStagesList.length + 1;
+          const stageId =
+            extStage.id ||
+            `stage-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+          newStagesList.push({
+            id: stageId,
+            stageNumber: nextNum,
+            title: extStage.title || `Etappe ${nextNum}`,
+            notes: extStage.notes,
+            transportType: extStage.transportType || 'foot',
+          });
+
+          const stageWps = extractedWps.filter((w) => w.stageId === extStage.id);
+          allNewTaggedWps.push(...stageWps.map((w) => ({ ...w, stageId })));
+        });
+
+        // Also update currentRoute directly with the new stages and their coordinates
+        const updatedCurrentStages: HikeStage[] = [
+          ...currentRoute.stages,
+          ...finalRoute.stages.map((s, idx) => ({
+            ...s,
+            stageNumber: currentRoute.stages.length + 1 + idx,
+            id: newStagesList[existingStages.length + idx]?.id || s.id,
+          })),
+        ];
+
+        skipRecalculateRef.current = true;
+        setCurrentRoute({
+          ...currentRoute,
+          stages: updatedCurrentStages,
+          totalDistanceKm: Number(
+            (currentRoute.totalDistanceKm + finalRoute.totalDistanceKm).toFixed(2)
+          ),
+        });
 
         applyStateUpdate(
-          [...waypoints, ...taggedWps],
-          [...stages, newStageDef],
-          newStageId
+          [...waypoints, ...allNewTaggedWps],
+          newStagesList,
+          newStagesList[existingStages.length]?.id || activeStageId
         );
         setFocusRouteTrigger((prev) => prev + 1);
         setIsEditing(true);
@@ -693,6 +738,7 @@ export const App: React.FC = () => {
       }
 
       // Default / fresh import: separate stages or single merged stage
+      skipRecalculateRef.current = true;
       setCurrentRoute(finalRoute);
       setActiveSavedRouteId(null);
       setFocusRouteTrigger((prev) => prev + 1);
@@ -733,13 +779,24 @@ export const App: React.FC = () => {
         setPendingGpxPayload({ files, texts });
         setGpxModalConfig({
           isOpen: true,
-          type: 'append-choice',
+          type: files.length > 1 ? 'multi-file' : 'append-choice',
           trackCount: files.length,
         });
         return;
       }
 
-      // Check if file has multiple track segments
+      // Check if multiple files uploaded without active route
+      if (files.length > 1) {
+        setPendingGpxPayload({ files, texts });
+        setGpxModalConfig({
+          isOpen: true,
+          type: 'multi-file',
+          trackCount: files.length,
+        });
+        return;
+      }
+
+      // Check if single file has multiple track segments
       if (files.length === 1) {
         const info = detectGpxTracks(texts[0]);
         if (info.hasMultipleStages) {
@@ -882,11 +939,13 @@ export const App: React.FC = () => {
                 onReverse={handleReverse}
                 onSave={() => setIsSaveModalOpen(true)}
                 onOpenLibrary={() => setIsLibraryModalOpen(true)}
+                onOpenMetadata={() => setIsMetadataModalOpen(true)}
                 onClear={handleClear}
                 onCenterRoute={handleZoomFullRoute}
                 hasRoute={Boolean(currentRoute && currentRoute.stages.length > 0)}
                 waypointCount={waypoints.length}
                 isCalculating={isCalculating}
+                sidebarWidth={sidebarWidth}
               />
             )}
 
@@ -1028,93 +1087,28 @@ export const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
                       <Button
                         id="btn-export-gpx"
                         variant="primary"
-                        className="w-full"
+                        size="sm"
+                        className="flex-1 text-xs py-1.5 px-2"
                         onClick={handleExportGpx}
+                        title={t('planner.btnExportGpx')}
                       >
-                        <Download className="w-4 h-4" />
-                        <span>{t('planner.btnExportGpx')}</span>
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('planner.btnExportGpx')}</span>
                       </Button>
                       <Button
                         id="btn-append-gpx"
                         variant="secondary"
                         size="sm"
-                        className="w-full"
+                        className="flex-1 text-xs py-1.5 px-2"
                         onClick={triggerAppendGpx}
                         title={t('planner.tooltipAppendGpx')}
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>{t('planner.btnAppendGpx')}</span>
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        id="btn-edit-active-route"
-                        variant={isEditing ? 'primary' : 'secondary'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          if (!isEditing && waypoints.length === 0 && currentRoute) {
-                            const { stages: extractedStages, waypoints: extractedWps } =
-                              extractWaypointsPerStage(currentRoute);
-                            setStages(extractedStages);
-                            setActiveStageId(extractedStages[0]?.id || 'stage-1');
-                            setWaypoints(extractedWps);
-                            setHistory([
-                              {
-                                waypoints: extractedWps,
-                                stages: extractedStages,
-                                activeStageId: extractedStages[0]?.id || 'stage-1',
-                              },
-                            ]);
-                            setHistoryIndex(0);
-                          }
-                          setIsEditing((prev) => !prev);
-                        }}
-                      >
-                        {isEditing ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                        <span>
-                          {isEditing ? t('planner.btnFinishEditing') : t('planner.btnDragPoints')}
-                        </span>
-                      </Button>
-                      <Button
-                        id="btn-edit-metadata-active"
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsMetadataModalOpen(true)}
-                        title={t('planner.tooltipManageStatus')}
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>{t('planner.btnManageStatus')}</span>
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        id="btn-save-route-sidebar"
-                        variant="primary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsSaveModalOpen(true)}
-                        disabled={isCalculating}
-                      >
-                        <Save className="w-4 h-4" />
-                        <span>{t('planner.btnSave')}</span>
-                      </Button>
-                      <Button
-                        id="btn-open-route-library-sidebar"
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsLibraryModalOpen(true)}
-                      >
-                        <BookOpen className="w-4 h-4" />
-                        <span>{t('planner.btnLibrary')}</span>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('planner.btnAppendGpx')}</span>
                       </Button>
                     </div>
 

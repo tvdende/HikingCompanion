@@ -117,7 +117,10 @@ routesApi.post('/', async (c) => {
     return c.json({ error: 'Route title is required' }, 400);
   }
 
-  const coordinates = body.coordinates || [];
+  const coordinates =
+    body.coordinates && body.coordinates.length > 0
+      ? body.coordinates
+      : (body.stages || []).flatMap((s) => s.coordinates || []);
   if (coordinates.length === 0 && (!body.waypoints || body.waypoints.length === 0)) {
     return c.json({ error: 'Route must contain coordinates or waypoints' }, 400);
   }
@@ -290,8 +293,13 @@ routesApi.put('/:id', async (c) => {
   if (typeof body.totalDistanceKm === 'number') {
     updateValues.totalDistanceKm = Number(body.totalDistanceKm.toFixed(2));
   }
-  if (body.coordinates) {
+  if (body.coordinates && body.coordinates.length > 0) {
     updateValues.coordinatesJson = JSON.stringify(body.coordinates);
+  } else if (body.stages && body.stages.length > 0) {
+    const coords = body.stages.flatMap((s) => s.coordinates || []);
+    if (coords.length > 0) {
+      updateValues.coordinatesJson = JSON.stringify(coords);
+    }
   }
   if (body.waypoints) {
     updateValues.waypointsJson = JSON.stringify(body.waypoints);
