@@ -123,9 +123,11 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
   * Puntsgewijs routes uittekenen op de kaart.
   * **Snap to Roads / Trails**: Automatisch snappen naar officiële wandelpaden, bospaden en wegen via OpenStreetMap data.
   * **Tussenpunten & Draggen**: Routepunten direct verslepen of via split-handles tussenpunten invoegen.
-* **Route Bibliotheek & Beheer**:
-  * Opgeslagen routes inzien met statusfilters (`concept` vs `definitief`), zoekfunctie en metadata-bewerking (titel, locatie, omschrijving, prijs).
-  * Direct laden van opgeslagen routes in de interactieve editor.
+* **Route Bibliotheek & Beheer (Ruime Tabelweergave & Directe GPX Export)**:
+  * Ruime, schermvullende modale tabel (`96vw`, tot 1240px breed) in plaats van een compacte lijst.
+  * Overzichtelijke tabelstructuur met kolommen voor Route (titel, locatie, beschrijving en actieve routebadge), Status (🟢 Definitief / 🟡 Concept), Afstand & Hoogtemeters (+m / -m), Etappetelling (berekend op basis van `stagesJson`), Prijs / Marktplaats (€ of Gratis), Laatst gewijzigd, en Acties.
+  * Directe **GPX Export** per route vanuit de bibliotheek zonder de route eerst te hoeven openen in de editor.
+  * Filtertabs (`Alle`, `🟡 Concepten`, `🟢 Definitief`), zoekbalk met realtime filtering, route laden op de kaart, metadata-beheer (`Beheren`) en route verwijderen.
 * **Ondergrond-analyse (Surface Breakdown)**:
   * Analyseert de route aan de hand van OSM-tags (`surface`, `tracktype`, `highway`).
   * Realtime overzicht in kilometers en percentages:

@@ -899,6 +899,74 @@ html, body, #root {
   flex-direction: column;
 }
 
+.library-modal-card {
+  width: 96vw;
+  max-width: 1240px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .library-modal-card {
+    width: 98vw;
+    padding: 1rem;
+    max-height: 95vh;
+  }
+}
+
+.library-table-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.library-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+  min-width: 820px;
+}
+
+.library-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 12px 14px;
+  background: #f8f7f4;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.library-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0ede6;
+  vertical-align: middle;
+}
+
+.library-table tr:hover {
+  background: #fbfaf7;
+}
+
+.library-table tr.active-route-row {
+  background: #f3f8f5;
+}
+
+.library-table tr.active-route-row:hover {
+  background: #ebf4ef;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1098,55 +1166,34 @@ html, body, #root {
   padding: 1rem 1.25rem;
 }
 
-.saved-routes-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
+tbody#saved-routes-list {
+  display: table-row-group;
 }
 
-.saved-route-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.85rem 1rem;
-  background: #f8f7f4;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+tr.saved-route-item,
+.library-table tr.saved-route-item {
+  display: table-row !important;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  transition: background 0.15s ease;
 }
 
-.saved-route-item:hover {
-  background: #f0eee7;
-  border-color: #d5d2c8;
+tr.saved-route-item:hover,
+.library-table tr.saved-route-item:hover {
+  background: #fbfaf7;
 }
 
-.saved-route-item.active-route-item {
-  border-color: var(--primary-600);
-  background: #eaf3ed;
+tr.saved-route-item.active-route-row,
+.library-table tr.saved-route-item.active-route-row {
+  background: #f3f8f5;
 }
 
-.saved-route-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.saved-route-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.active-badge {
-  background: #dcfce7;
-  color: #15803d;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 99px;
-  border: 1px solid #bbf7d0;
-  text-transform: uppercase;
+tr.saved-route-item.active-route-row:hover,
+.library-table tr.saved-route-item.active-route-row:hover {
+  background: #ebf4ef;
 }
 
 .route-save-summary-stats {

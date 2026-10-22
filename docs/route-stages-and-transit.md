@@ -67,6 +67,23 @@ Wandelaars kunnen per etappe het vervoertype instellen:
   - **Rij 2**: Afstand (`km`), hoogtemeters (`+m`), puntentelling (`pt`), compacte vervoertype-selector (`🥾 Wandelen`, `🚌 Bus`, `🚆 Trein`, `⛴️ Veerpont`), en directe actieknoppen voor samenvoegen (`🔗`) en verwijderen (`🗑️`).
   - **Rij 3 (Optioneel)**: Notitie-invoerveld voor overnachtingen en reisinformatie.
 
+### 2.6 Ruime Route Bibliotheek Tabel & Directe GPX Export
+- **Schermvullende Tabelinterface (`library-modal-card`)**:
+  - De bibliotheek ('Mijn Routes') wordt weergegeven in een ruime weergave (`width: 96vw`, maximaal `1240px`, maximale hoogte `90vh`) in plaats van een smalle popup.
+  - De routes worden gestructureerd gepresenteerd in een overzichtelijke datatabel (`#saved-routes-table`) met sticky header en hover-rijen.
+- **Tabelkolommen**:
+  1. **Route**: Routetitel, geografische locatie, routeomschrijving en een visuele badge indien de route momenteel actief is in de editor.
+  2. **Status**: Statusbadge (`🟢 Definitief` / `🟡 Concept`).
+  3. **Afstand & Hoogte**: Totale afstand in kilometers en hoogtemeters (`+m` stijgen / `-m` dalen).
+  4. **Etappes**: Aantal etappes van de meerdaagse tocht (direct berekend vanuit `stagesJson` in de API, bijv. `3 etappes`).
+  5. **Prijs**: Verkoopprijs op de marktplaats (`€X.XX` of `Gratis`).
+  6. **Gewijzigd**: Laatste bewerkingsdatum.
+  7. **Acties**:
+     - `Laden` (`#btn-load-route-{id}`): Laadt de route direct in de interactieve editor en sluit de modal.
+     - `GPX Exporteren` (`#btn-export-route-{id}`): Haalt de volledige routegeometrie op en downloadt direct een gestructureerd GPX 1.1-bestand met behoud van etappes (`<trk>`), transporttypes en notities, zonder de route eerst te hoeven openen in de editor.
+     - `Beheren` (`#btn-edit-metadata-route-{id}`): Opent het metadata- en marktplaatsbeheer dialoogvenster.
+     - `Verwijderen` (`#btn-delete-route-{id}`): Verwijdert de route na bevestiging.
+
 ---
 
 ## 3. Datamodel & Types
