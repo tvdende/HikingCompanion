@@ -27,6 +27,7 @@ import {
   reorderStages,
   deleteStageAndPoints,
   calculateStageMetrics,
+  calculateRouteMetrics,
 } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
@@ -290,6 +291,8 @@ export const App: React.FC = () => {
             }
           }
 
+          const segMetrics = calculateRouteMetrics(segmentCoords);
+
           newSegments.push({
             id: `seg-${fromWp.id}-${toWp.id}`,
             fromWaypointId: fromWp.id,
@@ -297,6 +300,8 @@ export const App: React.FC = () => {
             routingMode: mode,
             coordinates: segmentCoords,
             distanceMeters: segmentDistMeters,
+            elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
+            elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
           });
 
           totalMeters += segmentDistMeters;
@@ -354,6 +359,8 @@ export const App: React.FC = () => {
               calculateHaversineDistanceKm(stageCoords[c], stageCoords[c + 1]) * 1000;
           }
 
+          const stageMetrics = calculateRouteMetrics(stageCoords);
+
           return {
             id: stage.id,
             stageNumber: stage.stageNumber,
@@ -362,10 +369,14 @@ export const App: React.FC = () => {
             transportType: stage.transportType || 'foot',
             distanceKm: Number((stageDistMeters / 1000).toFixed(2)),
             coordinates: stageCoords,
+            elevationGainMeters: stageMetrics.elevationMetrics.elevationGainMeters,
+            elevationLossMeters: stageMetrics.elevationMetrics.elevationLossMeters,
           };
         });
 
         const distKm = Number((totalMeters / 1000).toFixed(2));
+        const allRouteCoords = hikeStages.flatMap((s) => s.coordinates);
+        const overallMetrics = calculateRouteMetrics(allRouteCoords);
 
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
@@ -376,10 +387,7 @@ export const App: React.FC = () => {
           priceEur: currentRoute?.priceEur ?? 0,
           totalDistanceKm: distKm,
           stages: hikeStages,
-          elevationMetrics: {
-            elevationGainMeters: 0,
-            elevationLossMeters: 0,
-          },
+          elevationMetrics: overallMetrics.elevationMetrics,
           createdAt: currentRoute?.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });

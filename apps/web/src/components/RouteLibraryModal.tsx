@@ -360,9 +360,13 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             )}
                           </div>
                         </td>
-                        <td>
-                          <Badge variant={isDefinitive ? 'success' : 'secondary'}>
-                            {isDefinitive ? '🟢 ' + t('common.definitive') : '🟡 ' + t('common.draft')}
+                        <td className="whitespace-nowrap">
+                          <Badge
+                            variant={isDefinitive ? 'success' : 'secondary'}
+                            className="whitespace-nowrap inline-flex items-center gap-1.5 py-0.5 px-2.5"
+                          >
+                            <span>{isDefinitive ? '🟢' : '🟡'}</span>
+                            <span>{isDefinitive ? t('common.definitive') : t('common.draft')}</span>
                           </Badge>
                         </td>
                         <td>
@@ -370,13 +374,15 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             <span className="font-semibold text-[#1b261e]">
                               {formatDistance(r.totalDistanceKm)}
                             </span>
-                            {r.elevationMetrics &&
-                              (r.elevationMetrics.elevationGainMeters > 0 ||
-                                r.elevationMetrics.elevationLossMeters > 0) && (
-                                <span className="text-[11px] text-[#576359] font-medium">
-                                  +{r.elevationMetrics.elevationGainMeters}m / -{r.elevationMetrics.elevationLossMeters}m
-                                </span>
-                              )}
+                            {r.elevationMetrics ? (
+                              <span className="text-[11px] text-[#576359] font-medium whitespace-nowrap">
+                                +{r.elevationMetrics.elevationGainMeters ?? 0}m / -{r.elevationMetrics.elevationLossMeters ?? 0}m
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-[#798a80] font-normal whitespace-nowrap">
+                                —
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td>
