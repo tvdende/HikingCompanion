@@ -55,7 +55,7 @@ export const showcaseContent: ShowcaseContent = {
     subheadline:
       'Hiking Companion combineert geavanceerde GPX-hoogteanalyses, een afleidingsvrije Companion HUD voor onderweg en betrouwbare offline-functionaliteit in één snelle Progressive Web App.',
     ctaLogin: 'Inloggen / Account Openen',
-    ctaExplore: 'Bekijk Functionaliteiten 👇',
+    ctaExplore: 'Bekijk Functionaliteiten',
   },
   features: [
     {

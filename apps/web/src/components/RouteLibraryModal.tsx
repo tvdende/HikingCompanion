@@ -4,6 +4,7 @@ import { RouteMetadataModal } from './RouteMetadataModal';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
+import { Map, Edit3, Trash2, Loader2 } from 'lucide-react';
 
 export interface SavedRouteListItem {
   id: string;
@@ -299,7 +300,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             disabled={loadingRouteId === r.id}
                             title="Route inladen op de kaart"
                           >
-                            {loadingRouteId === r.id ? 'Laden...' : '🗺️ Openen'}
+                            <Map className="w-3.5 h-3.5" />
+                            <span>{loadingRouteId === r.id ? 'Laden...' : 'Openen'}</span>
                           </Button>
                           <Button
                             id={`btn-edit-metadata-${r.id}`}
@@ -308,7 +310,8 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             onClick={() => setEditingRoute(r)}
                             title="Metadata, omschrijving en prijs bewerken"
                           >
-                            ✏️ Beheren
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Beheren</span>
                           </Button>
                           <Button
                             id={`btn-delete-route-${r.id}`}
@@ -320,7 +323,11 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                             title="Route verwijderen"
                             aria-label={`Verwijder ${r.title}`}
                           >
-                            {deletingId === r.id ? '⏳' : '🗑️'}
+                            {deletingId === r.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
                           </Button>
                         </div>
                       </div>

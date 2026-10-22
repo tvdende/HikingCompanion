@@ -33,6 +33,7 @@ import { RouteMetadataModal } from './components/RouteMetadataModal';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
+import { Download, Plus, Check, Edit3, Settings, Save, BookOpen } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -668,7 +669,7 @@ export const App: React.FC = () => {
                         className="w-full"
                         onClick={handleExportGpx}
                       >
-                        <span>💾</span>
+                        <Download className="w-4 h-4" />
                         <span>Download GPX</span>
                       </Button>
                       <Button
@@ -679,7 +680,7 @@ export const App: React.FC = () => {
                         onClick={triggerAppendGpx}
                         title="Extra GPX aan deze route toevoegen en koppelen"
                       >
-                        <span>➕</span>
+                        <Plus className="w-4 h-4" />
                         <span>GPX Toevoegen</span>
                       </Button>
                     </div>
@@ -702,7 +703,7 @@ export const App: React.FC = () => {
                           setIsEditing((prev) => !prev);
                         }}
                       >
-                        <span>{isEditing ? '✓' : '✏️'}</span>
+                        {isEditing ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
                         <span>
                           {isEditing ? 'Afronden' : 'Punten slepen'}
                         </span>
@@ -715,7 +716,8 @@ export const App: React.FC = () => {
                         onClick={() => setIsMetadataModalOpen(true)}
                         title="Beheer titel, status, omschrijving en prijs"
                       >
-                        ⚙️ Beheer & Status
+                        <Settings className="w-4 h-4" />
+                        <span>Beheer & Status</span>
                       </Button>
                     </div>
 
@@ -728,7 +730,8 @@ export const App: React.FC = () => {
                         onClick={() => setIsSaveModalOpen(true)}
                         disabled={isCalculating}
                       >
-                        💾 Opslaan
+                        <Save className="w-4 h-4" />
+                        <span>Opslaan</span>
                       </Button>
                       <Button
                         id="btn-open-route-library-sidebar"
@@ -737,7 +740,8 @@ export const App: React.FC = () => {
                         className="flex-1"
                         onClick={() => setIsLibraryModalOpen(true)}
                       >
-                        📚 Bibliotheek
+                        <BookOpen className="w-4 h-4" />
+                        <span>Bibliotheek</span>
                       </Button>
                     </div>
                   </div>

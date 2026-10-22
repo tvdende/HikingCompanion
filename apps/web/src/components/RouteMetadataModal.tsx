@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Save } from 'lucide-react';
 
 export interface RouteMetadataModalProps {
   isOpen: boolean;
@@ -221,7 +222,8 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
               variant="primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Opslaan...' : '💾 Wijzigingen Opslaan'}
+              <Save className="w-4 h-4" />
+              <span>{isSubmitting ? 'Opslaan...' : 'Wijzigingen Opslaan'}</span>
             </Button>
           </div>
         </form>

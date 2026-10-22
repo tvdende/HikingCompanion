@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { showcaseContent } from '../content/showcase';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { LogIn, Compass, Sparkles } from 'lucide-react';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -35,19 +36,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
             id="btn-hero-login"
             variant="primary"
             size="lg"
-            className="text-base px-6 py-3"
             onClick={onOpenLogin}
           >
-            <span>🚀</span>
+            <LogIn className="w-5 h-5" />
             <span>{hero.ctaLogin}</span>
           </Button>
           <Button
             id="btn-hero-explore"
             variant="secondary"
             size="lg"
-            className="text-base px-6 py-3"
             onClick={handleScrollToDemo}
           >
+            <Compass className="w-5 h-5" />
             <span>{hero.ctaExplore}</span>
           </Button>
         </div>
@@ -272,10 +272,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
               id="btn-cta-login"
               variant="primary"
               size="lg"
-              className="text-base px-8 py-3.5 shadow-sm"
+              className="shadow-sm"
               onClick={onOpenLogin}
             >
-              <span>🔑</span>
+              <Sparkles className="w-5 h-5" />
               <span>{loginGuide.ctaButton}</span>
             </Button>
             <p className="landing-cta-subtext">

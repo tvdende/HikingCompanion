@@ -352,8 +352,12 @@ html, body, #root {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  padding: 8px 16px;
+  gap: 0.5rem;
+  line-height: 1;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 1rem;
+  height: 2.25rem; /* 36px standard */
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 600;
@@ -376,7 +380,7 @@ html, body, #root {
 .landing-btn-primary {
   background: #24583d !important;
   color: #ffffff !important;
-  border-color: #24583d !important;
+  border: 1px solid #24583d !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
@@ -401,7 +405,7 @@ html, body, #root {
 .secondary-gpx-btn,
 .landing-btn-secondary {
   background: #ffffff !important;
-  color: #2d3748 !important;
+  color: #1b261e !important;
   border: 1px solid #d5d2c8 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
@@ -411,7 +415,7 @@ html, body, #root {
 .landing-btn-secondary:hover:not(:disabled) {
   background: #f4f3ef !important;
   border-color: #bfb9aa !important;
-  color: #1a202c !important;
+  color: #1b261e !important;
   transform: translateY(-1px);
 }
 
@@ -439,14 +443,17 @@ html, body, #root {
 
 /* Button Sizing */
 .btn-sm {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  border-radius: 6px;
+  height: 2rem !important; /* 32px */
+  padding: 0 0.75rem !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
 }
 
 .btn-lg {
-  padding: 12px 24px;
-  font-size: 1rem;
+  height: 3rem !important; /* 48px */
+  padding: 0 1.75rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
 }
 
 /* ==========================================================================
@@ -1260,10 +1267,6 @@ html, body, #root {
   flex-wrap: wrap;
 }
 
-.landing-btn-primary.large-cta {
-  padding: 14px 32px;
-  font-size: 1.05rem;
-}
 
 /* Feature Cards Grid */
 .landing-features-section {
@@ -1561,6 +1564,22 @@ html, body, #root {
   font-size: 0.85rem;
   line-height: 1.5;
   color: var(--text-muted);
+}
+
+.landing-cta-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.landing-cta-subtext {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
 }
 
 /* ==========================================================================

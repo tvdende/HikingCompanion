@@ -1,6 +1,19 @@
 import React from 'react';
 import type { RoutingMode } from '@hiking-companion/core';
 import { Button } from './ui/button';
+import {
+  Edit3,
+  MousePointer2,
+  Footprints,
+  Minus,
+  Undo2,
+  Redo2,
+  ArrowLeftRight,
+  Trash2,
+  Save,
+  BookOpen,
+  Loader2,
+} from 'lucide-react';
 
 export interface RouteEditorToolbarProps {
   isEditing: boolean;
@@ -51,7 +64,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         title={isEditing ? 'Bewerken pauzeren (klik om te stoppen)' : 'Route bewerken starten (klik op kaart om punten te plaatsen)'}
         aria-pressed={isEditing}
       >
-        <span>{isEditing ? '✏️' : '🖱️'}</span>
+        {isEditing ? <Edit3 className="w-4 h-4" /> : <MousePointer2 className="w-4 h-4" />}
         <span>{isEditing ? 'Bewerken actief' : 'Route Bewerken'}</span>
       </Button>
 
@@ -62,23 +75,23 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         <button
           id="btn-mode-snap"
           type="button"
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'snap'
-              ? 'bg-[#24583d] text-white shadow-xs'
-              : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
-          }`}
+               ? 'bg-[#24583d] text-white shadow-xs'
+               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
+           }`}
           onClick={() => onToggleRoutingMode('snap')}
           title="Volg wandelpaden (OpenStreetMap voetpaden)"
           aria-checked={routingMode === 'snap'}
           role="radio"
         >
-          <span>🥾</span>
+          <Footprints className="w-3.5 h-3.5" />
           <span>Paden</span>
         </button>
         <button
           id="btn-mode-direct"
           type="button"
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'direct'
               ? 'bg-[#24583d] text-white shadow-xs'
               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
@@ -88,7 +101,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           aria-checked={routingMode === 'direct'}
           role="radio"
         >
-          <span>📏</span>
+          <Minus className="w-3.5 h-3.5" />
           <span>Recht</span>
         </button>
       </div>
@@ -107,7 +120,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           title="Ongedaan maken (Ctrl+Z)"
           aria-label="Ongedaan maken"
         >
-          ↩️
+          <Undo2 className="w-4 h-4" />
         </Button>
         <Button
           id="btn-redo"
@@ -119,7 +132,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           title="Opnieuw uitvoeren (Ctrl+Y)"
           aria-label="Opnieuw uitvoeren"
         >
-          ↪️
+          <Redo2 className="w-4 h-4" />
         </Button>
       </div>
 
@@ -134,7 +147,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         disabled={waypointCount < 2}
         title="Draai de start- en finishrichting om"
       >
-        <span>🔄</span>
+        <ArrowLeftRight className="w-4 h-4" />
         <span>Omdraaien</span>
       </Button>
 
@@ -147,7 +160,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         disabled={waypointCount === 0}
         title="Wis alle routepunten"
       >
-        <span>🗑️</span>
+        <Trash2 className="w-4 h-4" />
         <span>Wissen</span>
       </Button>
 
@@ -163,7 +176,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           disabled={waypointCount < 2 || isCalculating}
           title="Route opslaan in jouw bibliotheek"
         >
-          <span>💾</span>
+          <Save className="w-4 h-4" />
           <span>{isCalculating ? 'Berekenen...' : 'Opslaan'}</span>
         </Button>
 
@@ -174,14 +187,14 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           onClick={onOpenLibrary}
           title="Open opgeslagen routes bibliotheek"
         >
-          <span>📚</span>
+          <BookOpen className="w-4 h-4" />
           <span>Mijn Routes</span>
         </Button>
       </div>
 
       {isCalculating && (
         <span className="flex items-center ml-1 text-sm" aria-live="polite">
-          <span className="inline-block animate-spin">⚙️</span>
+          <Loader2 className="w-4 h-4 animate-spin text-[#24583d]" />
         </span>
       )}
     </div>

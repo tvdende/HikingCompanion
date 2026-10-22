@@ -3,6 +3,7 @@ import type { AppMode } from '@hiking-companion/core';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { LogIn } from 'lucide-react';
 
 interface HeaderProps {
   currentMode: AppMode;
@@ -150,10 +151,9 @@ export const Header: React.FC<HeaderProps> = ({
           <Button
             id="btn-open-login"
             variant="primary"
-            size="sm"
             onClick={onOpenLogin}
           >
-            <span>👤</span>
+            <LogIn className="w-4 h-4" />
             <span>Inloggen</span>
           </Button>
         )}
