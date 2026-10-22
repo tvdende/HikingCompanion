@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { showcaseContent } from '../content/showcase';
+import React, { useState, useMemo } from 'react';
+import { getShowcaseContent } from '../content/showcase';
+import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { LogIn, Compass, Sparkles } from 'lucide-react';
@@ -9,7 +10,10 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
-  const { hero, features, interactiveDemo, loginGuide } = showcaseContent;
+  const { locale, t } = useTranslation();
+  const showcase = useMemo(() => getShowcaseContent(locale), [locale]);
+  const { hero, features, interactiveDemo, loginGuide, simulations } = showcase;
+
   const [activeTabId, setActiveTabId] = useState(interactiveDemo.tabs[0]?.id || 'gpx-demo');
 
   const activeTab = interactiveDemo.tabs.find((t) => t.id === activeTabId) || interactiveDemo.tabs[0];
@@ -80,7 +84,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
       {/* 3. Interactive Demo Showcase */}
       <section className="landing-demo-section" id="demo-showcase">
         <div className="landing-section-header">
-          <span className="landing-section-tag">Interactieve Demo</span>
+          <span className="landing-section-tag">{t('landing.demoTag')}</span>
           <h2 className="landing-section-title">{interactiveDemo.sectionTitle}</h2>
           <p className="landing-section-subtitle">{interactiveDemo.sectionSubtitle}</p>
         </div>
@@ -117,8 +121,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
               {activeTab.previewType === 'gpx-analysis' && (
                 <div className="simulation-gpx">
                   <div className="sim-route-header">
-                    <span className="sim-tag">GPX Preview</span>
-                    <span className="sim-trail-name">📍 Pieterpad: Etappe 3 (Zuidlaren - Rolde)</span>
+                    <span className="sim-tag">{simulations.gpxPreviewTag}</span>
+                    <span className="sim-trail-name">{simulations.gpxSampleTrail}</span>
                   </div>
                   {/* Simulated Elevation Chart SVG */}
                   <div className="sim-elevation-chart">
@@ -146,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
                     </svg>
                     <div className="chart-legend">
                       <span>0 km (25m)</span>
-                      <span>Hoogste punt: 115m (km 14.2)</span>
+                      <span>{simulations.highestPointLabel}</span>
                       <span>28.4 km (40m)</span>
                     </div>
                   </div>
@@ -159,33 +163,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
                     <div className="mode-preview-box planner-box">
                       <div className="mode-box-header">
                         <span className="mode-icon">🗺️</span>
-                        <span>Planner Modus</span>
+                        <span>{simulations.plannerTitle}</span>
                       </div>
                       <p className="mode-box-desc">
-                        Interactieve vector-kaart met alle etappes, waypoints en route-details.
+                        {simulations.plannerDesc}
                       </p>
                       <div className="sim-planner-tools">
-                        <span className="sim-pill active">Etappes (3)</span>
-                        <span className="sim-pill">GPX Export</span>
-                        <span className="sim-pill">Kaartlagen</span>
+                        <span className="sim-pill active">{simulations.plannerStagesPill}</span>
+                        <span className="sim-pill">{simulations.plannerGpxPill}</span>
+                        <span className="sim-pill">{simulations.plannerLayersPill}</span>
                       </div>
                     </div>
                     <div className="mode-preview-box companion-box">
                       <div className="mode-box-header">
                         <span className="mode-icon">🧭</span>
-                        <span>Companion HUD</span>
+                        <span>{simulations.companionTitle}</span>
                       </div>
                       <p className="mode-box-desc">
-                        Extra groot contrast, minimale interface, gericht op veilige navigatie.
+                        {simulations.companionDesc}
                       </p>
                       <div className="sim-hud-metrics">
                         <div className="sim-hud-val">
                           <span className="hud-num">4.2</span>
-                          <span className="hud-unit">km/u</span>
+                          <span className="hud-unit">{simulations.companionSpeedUnit}</span>
                         </div>
                         <div className="sim-hud-val">
                           <span className="hud-num">8.6</span>
-                          <span className="hud-unit">km over</span>
+                          <span className="hud-unit">{simulations.companionRemainingUnit}</span>
                         </div>
                       </div>
                     </div>
@@ -197,21 +201,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
                 <div className="simulation-offline">
                   <div className="offline-status-banner">
                     <span className="status-dot-green"></span>
-                    <span>PWA Offline Mode Actief • Alle vectortegels gebufferd</span>
+                    <span>{simulations.offlineBanner}</span>
                   </div>
                   <div className="offline-features-list">
                     <div className="offline-item">
                       <span className="offline-icon">💾</span>
                       <div>
-                        <strong>Lokale Routebuffer</strong>
-                        <p>Geen dataverbinding nodig om je geladen GPX routes te raadplegen.</p>
+                        <strong>{simulations.offlineLocalBufferTitle}</strong>
+                        <p>{simulations.offlineLocalBufferDesc}</p>
                       </div>
                     </div>
                     <div className="offline-item">
                       <span className="offline-icon">🛰️</span>
                       <div>
-                        <strong>Standalone GPS Tracking</strong>
-                        <p>Je interne GPS werkt overal ter wereld, onafhankelijk van 4G/5G.</p>
+                        <strong>{simulations.offlineGpsTitle}</strong>
+                        <p>{simulations.offlineGpsDesc}</p>
                       </div>
                     </div>
                   </div>
@@ -235,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
 
             {/* Explanations */}
             <div className="demo-explanation-box">
-              <h4 className="explanation-title">Belangrijkste voordelen:</h4>
+              <h4 className="explanation-title">{t('landing.benefitsTitle')}</h4>
               <ul className="explanation-list">
                 {activeTab.explanation.map((item, idx) => (
                   <li key={idx}>
@@ -279,7 +283,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
               <span>{loginGuide.ctaButton}</span>
             </Button>
             <p className="landing-cta-subtext">
-              Directe toegang • Geen creditcard nodig • 100% gratis & open source
+              {loginGuide.ctaSubtext}
             </p>
           </div>
         </div>

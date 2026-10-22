@@ -1,5 +1,6 @@
 import React from 'react';
 import type { RoutingMode } from '@hiking-companion/core';
+import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import {
   Edit3,
@@ -48,12 +49,14 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   waypointCount,
   isCalculating = false,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div
       id="route-editor-toolbar"
       className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
       role="toolbar"
-      aria-label="Route Editor Tools"
+      aria-label={t('editorToolbar.ariaToolbar')}
     >
       {/* Edit Mode Toggle */}
       <Button
@@ -61,17 +64,21 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         variant={isEditing ? 'primary' : 'secondary'}
         size="sm"
         onClick={onToggleEditing}
-        title={isEditing ? 'Bewerken pauzeren (klik om te stoppen)' : 'Route bewerken starten (klik op kaart om punten te plaatsen)'}
+        title={isEditing ? t('editorToolbar.tooltipStopEdit') : t('editorToolbar.tooltipStartEdit')}
         aria-pressed={isEditing}
       >
         {isEditing ? <Edit3 className="w-4 h-4" /> : <MousePointer2 className="w-4 h-4" />}
-        <span>{isEditing ? 'Bewerken actief' : 'Route Bewerken'}</span>
+        <span>{isEditing ? t('editorToolbar.btnEditActive') : t('editorToolbar.btnStartEdit')}</span>
       </Button>
 
       <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
 
       {/* Snap Mode Toggle */}
-      <div className="flex bg-[#eeece6] rounded-full p-0.5 border border-[#dfdcd3]" role="radiogroup" aria-label="Routering methode">
+      <div
+        className="flex bg-[#eeece6] rounded-full p-0.5 border border-[#dfdcd3]"
+        role="radiogroup"
+        aria-label={t('editorToolbar.routingAria')}
+      >
         <button
           id="btn-mode-snap"
           type="button"
@@ -81,12 +88,12 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
                : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
            }`}
           onClick={() => onToggleRoutingMode('snap')}
-          title="Volg wandelpaden (OpenStreetMap voetpaden)"
+          title={t('editorToolbar.tooltipSnap')}
           aria-checked={routingMode === 'snap'}
           role="radio"
         >
           <Footprints className="w-3.5 h-3.5" />
-          <span>Paden</span>
+          <span>{t('editorToolbar.methodSnap')}</span>
         </button>
         <button
           id="btn-mode-direct"
@@ -97,12 +104,12 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
           }`}
           onClick={() => onToggleRoutingMode('direct')}
-          title="Rechte vogelvluchtlijn (vrije lijn)"
+          title={t('editorToolbar.tooltipDirect')}
           aria-checked={routingMode === 'direct'}
           role="radio"
         >
           <Minus className="w-3.5 h-3.5" />
-          <span>Recht</span>
+          <span>{t('editorToolbar.methodDirect')}</span>
         </button>
       </div>
 
@@ -117,8 +124,8 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           className="h-8 w-8 text-sm"
           onClick={onUndo}
           disabled={!canUndo}
-          title="Ongedaan maken (Ctrl+Z)"
-          aria-label="Ongedaan maken"
+          title={t('editorToolbar.tooltipUndo')}
+          aria-label={t('editorToolbar.undo')}
         >
           <Undo2 className="w-4 h-4" />
         </Button>
@@ -129,8 +136,8 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           className="h-8 w-8 text-sm"
           onClick={onRedo}
           disabled={!canRedo}
-          title="Opnieuw uitvoeren (Ctrl+Y)"
-          aria-label="Opnieuw uitvoeren"
+          title={t('editorToolbar.tooltipRedo')}
+          aria-label={t('editorToolbar.redo')}
         >
           <Redo2 className="w-4 h-4" />
         </Button>
@@ -145,10 +152,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         size="sm"
         onClick={onReverse}
         disabled={waypointCount < 2}
-        title="Draai de start- en finishrichting om"
+        title={t('editorToolbar.tooltipReverse')}
       >
         <ArrowLeftRight className="w-4 h-4" />
-        <span>Omdraaien</span>
+        <span>{t('editorToolbar.reverse')}</span>
       </Button>
 
       {/* Clear Route */}
@@ -158,10 +165,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         size="sm"
         onClick={onClear}
         disabled={waypointCount === 0}
-        title="Wis alle routepunten"
+        title={t('editorToolbar.tooltipClear')}
       >
         <Trash2 className="w-4 h-4" />
-        <span>Wissen</span>
+        <span>{t('editorToolbar.clear')}</span>
       </Button>
 
       <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
@@ -174,10 +181,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           size="sm"
           onClick={onSave}
           disabled={waypointCount < 2 || isCalculating}
-          title="Route opslaan in jouw bibliotheek"
+          title={t('editorToolbar.tooltipSave')}
         >
           <Save className="w-4 h-4" />
-          <span>{isCalculating ? 'Berekenen...' : 'Opslaan'}</span>
+          <span>{isCalculating ? t('editorToolbar.calculating') : t('editorToolbar.save')}</span>
         </Button>
 
         <Button
@@ -185,10 +192,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           variant="secondary"
           size="sm"
           onClick={onOpenLibrary}
-          title="Open opgeslagen routes bibliotheek"
+          title={t('editorToolbar.tooltipMyRoutes')}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Mijn Routes</span>
+          <span>{t('editorToolbar.myRoutes')}</span>
         </Button>
       </div>
 

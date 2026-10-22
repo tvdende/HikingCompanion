@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { AppMode } from '@hiking-companion/core';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
+import { LanguageSelector } from './LanguageSelector';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { LogIn } from 'lucide-react';
@@ -19,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
 }) => {
   const { user, isLoading, logout, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -36,11 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Badge variant="destructive">Beheerder</Badge>;
+        return <Badge variant="destructive">{t('nav.roleAdmin')}</Badge>;
       case 'planner':
-        return <Badge variant="secondary">Planner</Badge>;
+        return <Badge variant="secondary">{t('nav.rolePlanner')}</Badge>;
       default:
-        return <Badge variant="default">Wandelaar</Badge>;
+        return <Badge variant="default">{t('nav.roleHiker')}</Badge>;
     }
   };
 
@@ -49,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="brand-section">
         <div className="brand-icon">🥾</div>
         <span id="header-brand" className="brand-title">
-          Hiking Companion
+          {t('common.appName')}
         </span>
       </div>
 
@@ -63,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             aria-pressed={currentMode === 'planner'}
           >
             <span>📐</span>
-            <span>Planner</span>
+            <span>{t('nav.planner')}</span>
           </button>
 
           <button
@@ -74,12 +77,14 @@ export const Header: React.FC<HeaderProps> = ({
             aria-pressed={currentMode === 'companion'}
           >
             <span>🧭</span>
-            <span>Companion</span>
+            <span>{t('nav.companion')}</span>
           </button>
         </div>
       )}
 
-      <div className="header-auth-section">
+      <div className="header-auth-section flex items-center gap-3">
+        <LanguageSelector />
+
         {isLoading ? (
           <div className="auth-skeleton" />
         ) : user ? (
@@ -127,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
                     role="menuitem"
                   >
                     <span>🛡️</span>
-                    <span>Gebruikersbeheer</span>
+                    <span>{t('nav.userManagement')}</span>
                   </button>
                 )}
 
@@ -142,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
                   role="menuitem"
                 >
                   <span>🚪</span>
-                  <span>Uitloggen</span>
+                  <span>{t('nav.logout')}</span>
                 </button>
               </div>
             )}
@@ -154,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenLogin}
           >
             <LogIn className="w-4 h-4" />
-            <span>Inloggen</span>
+            <span>{t('nav.login')}</span>
           </Button>
         )}
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { AdminUserListItem, UserRole } from '@hiking-companion/core';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -11,6 +12,7 @@ interface AdminUsersModalProps {
 
 export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClose }) => {
   const { user: currentAdmin } = useAuth();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +31,14 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
         setUsers(data.users);
       } else {
         const err = (await res.json()) as any;
-        setActionError(err.error || 'Fout bij het ophalen van gebruikers');
+        setActionError(err.error || t('adminModal.fetchError'));
       }
     } catch {
-      setActionError('Netwerkfout bij communicatie met de server');
+      setActionError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -61,10 +63,10 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
         );
       } else {
         const err = (await res.json()) as any;
-        setActionError(err.error || 'Kon rol niet wijzigen');
+        setActionError(err.error || t('adminModal.updateRoleError'));
       }
     } catch {
-      setActionError('Netwerkfout');
+      setActionError(t('common.networkError'));
     }
   };
 
@@ -84,15 +86,15 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
         );
       } else {
         const err = (await res.json()) as any;
-        setActionError(err.error || 'Kon status niet wijzigen');
+        setActionError(err.error || t('adminModal.updateStatusError'));
       }
     } catch {
-      setActionError('Netwerkfout');
+      setActionError(t('common.networkError'));
     }
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!window.confirm(`Weet je zeker dat je account "${userName}" permanent wilt verwijderen?`)) {
+    if (!window.confirm(t('adminModal.deleteConfirm', { name: userName }))) {
       return;
     }
     setActionError(null);
@@ -105,10 +107,10 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
         setUsers((prev) => prev.filter((u) => u.id !== userId));
       } else {
         const err = (await res.json()) as any;
-        setActionError(err.error || 'Kon gebruiker niet verwijderen');
+        setActionError(err.error || t('adminModal.deleteUserError'));
       }
     } catch {
-      setActionError('Netwerkfout');
+      setActionError(t('common.networkError'));
     }
   };
 
@@ -130,7 +132,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
           <div className="modal-title-wrap">
             <span className="modal-icon">🛡️</span>
             <h2 id="admin-modal-title" className="modal-title">
-              Gebruikersbeheer (Beheerder)
+              {t('adminModal.title')}
             </h2>
           </div>
           <button
@@ -138,7 +140,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Sluiten"
+            aria-label={t('common.close')}
           >
             ✕
           </button>
@@ -148,7 +150,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
           <Input
             id="admin-search-input"
             type="text"
-            placeholder="Zoek op naam of e-mail..."
+            placeholder={t('adminModal.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -158,7 +160,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
             size="sm"
             onClick={() => fetchUsers(searchTerm)}
           >
-            🔄 Verversen
+            🔄 {t('adminModal.btnRefresh')}
           </Button>
         </div>
 
@@ -170,18 +172,18 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
 
         <div className="admin-table-container">
           {isLoading && users.length === 0 ? (
-            <p className="admin-loading-text">Gebruikers laden...</p>
+            <p className="admin-loading-text">{t('adminModal.loadingUsers')}</p>
           ) : users.length === 0 ? (
-            <p className="admin-empty-text">Geen gebruikers gevonden.</p>
+            <p className="admin-empty-text">{t('adminModal.emptyUsers')}</p>
           ) : (
             <table className="admin-table" id="admin-users-table">
               <thead>
                 <tr>
-                  <th>Gebruiker</th>
-                  <th>Rol</th>
-                  <th>Status</th>
-                  <th>Provider(s)</th>
-                  <th>Acties</th>
+                  <th>{t('adminModal.colUser')}</th>
+                  <th>{t('adminModal.colRole')}</th>
+                  <th>{t('adminModal.colStatus')}</th>
+                  <th>{t('adminModal.colProviders')}</th>
+                  <th>{t('adminModal.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,9 +207,9 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
                             handleRoleChange(u.id, e.target.value as UserRole)
                           }
                         >
-                          <option value="user">Wandelaar (user)</option>
-                          <option value="planner">Planner</option>
-                          <option value="admin">Beheerder (admin)</option>
+                          <option value="user">{t('adminModal.roleUser')}</option>
+                          <option value="planner">{t('adminModal.rolePlanner')}</option>
+                          <option value="admin">{t('adminModal.roleAdmin')}</option>
                         </select>
                       </td>
                       <td>
@@ -221,13 +223,13 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
                           onClick={() => handleToggleStatus(u.id, u.isActive)}
                           title={
                             isSelf
-                              ? 'Je kunt je eigen status niet wijzigen'
+                              ? t('adminModal.tooltipSelfStatus')
                               : u.isActive
-                              ? 'Klik om te deactiveren'
-                              : 'Klik om te activeren'
+                              ? t('adminModal.tooltipDeactivate')
+                              : t('adminModal.tooltipActivate')
                           }
                         >
-                          {u.isActive ? '● Actief' : '○ Geblokkeerd'}
+                          {u.isActive ? t('adminModal.statusActive') : t('adminModal.statusBlocked')}
                         </button>
                       </td>
                       <td>
@@ -244,7 +246,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
                             type="button"
                             className="delete-user-btn"
                             onClick={() => handleDeleteUser(u.id, u.name)}
-                            title="Gebruiker verwijderen"
+                            title={t('adminModal.tooltipDelete')}
                           >
                             🗑️
                           </button>

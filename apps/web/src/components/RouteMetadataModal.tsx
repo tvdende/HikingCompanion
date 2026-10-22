@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { RouteStatus } from '@hiking-companion/core';
+import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Save } from 'lucide-react';
@@ -24,6 +25,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
   route,
   onSaveSuccess,
 }) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -50,13 +52,13 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError('Vul een routetitel in.');
+      setError(t('metadataModal.errTitleRequired'));
       return;
     }
 
     const parsedPrice = parseFloat(priceEur);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
-      setError('Voer een geldige prijs in euro in (bijv. 0 of 2.99).');
+      setError(t('metadataModal.errPriceInvalid'));
       return;
     }
 
@@ -82,14 +84,14 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'Kon routemetadata niet bijwerken.');
+        throw new Error(data.message || t('metadataModal.errSaveFailed'));
       }
 
       const updated = await res.json();
       onSaveSuccess(updated.route || { ...route, title, description, location, status, priceEur: parsedPrice });
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Fout bij opslaan.');
+      setError(err.message || t('metadataModal.errSaveFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -108,14 +110,14 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xl">⚙️</span>
             <h2 id="metadata-modal-title" className="modal-title">
-              Route Beheren & Status
+              {t('metadataModal.title')}
             </h2>
           </div>
           <button
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Sluit dialoog"
+            aria-label={t('common.close')}
           >
             ✕
           </button>
@@ -135,14 +137,14 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
           <div className="px-5 flex flex-col gap-3.5">
             <div className="form-group">
               <label htmlFor="metadata-title-input" className="form-label">
-                Routetitel *
+                {t('metadataModal.labelTitle')}
               </label>
               <Input
                 id="metadata-title-input"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Bijv. Veluwezoom Etappe 1"
+                placeholder={t('metadataModal.placeholderTitle')}
                 required
               />
             </div>
@@ -150,7 +152,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div className="form-group">
                 <label htmlFor="metadata-status-select" className="form-label">
-                  Status
+                  {t('metadataModal.labelStatus')}
                 </label>
                 <select
                   id="metadata-status-select"
@@ -158,14 +160,14 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
                   value={status}
                   onChange={(e) => setStatus(e.target.value as RouteStatus)}
                 >
-                  <option value="draft">🟡 Concept (Draft)</option>
-                  <option value="definitive">🟢 Definitief (Klaar)</option>
+                  <option value="draft">{t('metadataModal.statusDraftOption')}</option>
+                  <option value="definitive">{t('metadataModal.statusDefinitiveOption')}</option>
                 </select>
               </div>
 
               <div className="form-group">
                 <label htmlFor="metadata-price-input" className="form-label">
-                  Prijs (€)
+                  {t('metadataModal.labelPrice')}
                 </label>
                 <Input
                   id="metadata-price-input"
@@ -181,20 +183,20 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
 
             <div className="form-group">
               <label htmlFor="metadata-location-input" className="form-label">
-                Regio / Locatie
+                {t('metadataModal.labelLocation')}
               </label>
               <Input
                 id="metadata-location-input"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Bijv. Veluwezoom, Gelderland"
+                placeholder={t('metadataModal.placeholderLocation')}
               />
             </div>
 
             <div className="form-group">
               <label htmlFor="metadata-description-textarea" className="form-label">
-                Omschrijving & Route-informatie
+                {t('metadataModal.labelDescription')}
               </label>
               <textarea
                 id="metadata-description-textarea"
@@ -202,7 +204,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beschrijf de bezienswaardigheden, ondergrond en bijzonderheden van deze route..."
+                placeholder={t('metadataModal.placeholderDescription')}
               />
             </div>
           </div>
@@ -214,7 +216,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Annuleren
+              {t('metadataModal.btnCancel')}
             </Button>
             <Button
               id="btn-save-metadata"
@@ -223,7 +225,7 @@ export const RouteMetadataModal: React.FC<RouteMetadataModalProps> = ({
               disabled={isSubmitting}
             >
               <Save className="w-4 h-4" />
-              <span>{isSubmitting ? 'Opslaan...' : 'Wijzigingen Opslaan'}</span>
+              <span>{isSubmitting ? t('metadataModal.saving') : t('metadataModal.btnSave')}</span>
             </Button>
           </div>
         </form>
