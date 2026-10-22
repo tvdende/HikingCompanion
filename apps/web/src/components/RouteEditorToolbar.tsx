@@ -14,6 +14,7 @@ import {
   Save,
   BookOpen,
   Loader2,
+  Crosshair,
 } from 'lucide-react';
 
 export interface RouteEditorToolbarProps {
@@ -29,6 +30,8 @@ export interface RouteEditorToolbarProps {
   onSave: () => void;
   onOpenLibrary: () => void;
   onClear: () => void;
+  onCenterRoute?: () => void;
+  hasRoute?: boolean;
   waypointCount: number;
   isCalculating?: boolean;
 }
@@ -46,6 +49,8 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   onSave,
   onOpenLibrary,
   onClear,
+  onCenterRoute,
+  hasRoute = false,
   waypointCount,
   isCalculating = false,
 }) => {
@@ -84,7 +89,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           type="button"
           className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'snap'
-               ? 'bg-[#24583d] text-white shadow-xs'
+               ? 'bg-[#24583d] text-white shadow-xs selected'
                : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
            }`}
           onClick={() => onToggleRoutingMode('snap')}
@@ -100,7 +105,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           type="button"
           className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'direct'
-              ? 'bg-[#24583d] text-white shadow-xs'
+              ? 'bg-[#24583d] text-white shadow-xs selected'
               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
           }`}
           onClick={() => onToggleRoutingMode('direct')}
@@ -141,6 +146,20 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         >
           <Redo2 className="w-4 h-4" />
         </Button>
+        {onCenterRoute && (
+          <Button
+            id="btn-center-route"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-sm"
+            onClick={onCenterRoute}
+            disabled={!hasRoute && waypointCount === 0}
+            title={t('editorToolbar.tooltipCenterRoute')}
+            aria-label={t('editorToolbar.tooltipCenterRoute')}
+          >
+            <Crosshair className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />

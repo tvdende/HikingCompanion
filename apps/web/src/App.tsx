@@ -56,6 +56,7 @@ export const App: React.FC = () => {
   const [history, setHistory] = useState<RouteWaypoint[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [focusRouteTrigger, setFocusRouteTrigger] = useState(0);
 
   // File Upload State
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -101,7 +102,7 @@ export const App: React.FC = () => {
             {
               id: 'stage-1',
               stageNumber: 1,
-              title: 'Etappe 1',
+              title: t('planner.stageDefaultTitle', { number: 1 }),
               distanceKm: 0,
               coordinates: [singlePt],
             },
@@ -192,7 +193,7 @@ export const App: React.FC = () => {
 
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
-          title: currentRoute?.title || 'Nieuwe Route',
+          title: currentRoute?.title || t('planner.defaultRouteTitle'),
           description: currentRoute?.description,
           location: currentRoute?.location,
           status: currentRoute?.status || 'draft',
@@ -202,7 +203,7 @@ export const App: React.FC = () => {
             {
               id: 'stage-1',
               stageNumber: 1,
-              title: 'Etappe 1',
+              title: t('planner.stageDefaultTitle', { number: 1 }),
               distanceKm: distKm,
               coordinates: flattened,
             },
@@ -318,7 +319,7 @@ export const App: React.FC = () => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Fout bij opslaan van de route.');
+      throw new Error(errData.error || t('saveModal.errSaveFailed'));
     }
 
     const data = await res.json();
@@ -344,7 +345,7 @@ export const App: React.FC = () => {
     });
 
     if (!res.ok) {
-      throw new Error('Kon route niet ophalen.');
+      throw new Error(t('libraryModal.loadError'));
     }
 
     const data = await res.json();
@@ -374,6 +375,7 @@ export const App: React.FC = () => {
 
     setCurrentRoute(loadedRoute);
     setActiveSavedRouteId(r.id);
+    setFocusRouteTrigger((prev) => prev + 1);
 
     if (r.waypoints && r.waypoints.length > 0) {
       setWaypoints(r.waypoints);
@@ -427,6 +429,7 @@ export const App: React.FC = () => {
 
       setCurrentRoute(finalRoute);
       setActiveSavedRouteId(null);
+      setFocusRouteTrigger((prev) => prev + 1);
 
       // Extract draggable waypoints from the stitched track
       const { waypoints: extractedWps, segments: extractedSegments } =
@@ -551,6 +554,8 @@ export const App: React.FC = () => {
                 onSave={() => setIsSaveModalOpen(true)}
                 onOpenLibrary={() => setIsLibraryModalOpen(true)}
                 onClear={handleClear}
+                onCenterRoute={() => setFocusRouteTrigger((prev) => prev + 1)}
+                hasRoute={Boolean(currentRoute && currentRoute.stages.length > 0)}
                 waypointCount={waypoints.length}
                 isCalculating={isCalculating}
               />
@@ -560,6 +565,7 @@ export const App: React.FC = () => {
               route={currentRoute}
               waypoints={waypoints}
               isEditing={isEditing}
+              focusRouteTrigger={focusRouteTrigger}
               onAddWaypoint={handleAddWaypoint}
               onMoveWaypoint={handleMoveWaypoint}
               onDeleteWaypoint={handleDeleteWaypoint}
@@ -643,6 +649,12 @@ export const App: React.FC = () => {
                         <span className="stat-label">{t('planner.statGain')}</span>
                         <span id="stat-elevation-gain" className="stat-num text-gain">
                           +{currentRoute.elevationMetrics?.elevationGainMeters ?? 0} {t('common.m')}
+                        </span>
+                      </div>
+                      <div className="trail-stat-box">
+                        <span className="stat-label">{t('planner.statLoss')}</span>
+                        <span id="stat-elevation-loss" className="stat-num text-loss">
+                          -{currentRoute.elevationMetrics?.elevationLossMeters ?? 0} {t('common.m')}
                         </span>
                       </div>
                       <div className="trail-stat-box">
@@ -794,7 +806,7 @@ export const App: React.FC = () => {
               <section
                 id="companion-hud"
                 className="companion-hud"
-                aria-label="Hike Companion HUD"
+                aria-label={t('hud.ariaHud')}
               >
                 <div className="flex justify-between items-center">
                   <div>

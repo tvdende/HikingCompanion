@@ -96,6 +96,7 @@ export const en: TranslationCatalog = {
     statusDefinitiveBadge: '🟢 Definitive',
     statDistance: 'Distance',
     statGain: 'Elevation Gain',
+    statLoss: 'Elevation Loss',
     statStages: 'Stages',
     statPoints: 'Points',
     btnExportGpx: 'Download GPX',
@@ -119,6 +120,7 @@ export const en: TranslationCatalog = {
     errorGpxExport: 'An error occurred while exporting the route.',
     closeRouteTooltip: 'Close route',
     defaultRouteTitle: 'New Route',
+    stageDefaultTitle: 'Stage {number}',
   },
   editorToolbar: {
     ariaToolbar: 'Route Editor Tools',
@@ -144,6 +146,8 @@ export const en: TranslationCatalog = {
     tooltipSave: 'Save route to your personal library',
     myRoutes: 'My Routes',
     tooltipMyRoutes: 'Open saved routes library',
+    centerRoute: 'Center',
+    tooltipCenterRoute: 'Center view on route',
   },
   saveModal: {
     title: 'Save Route',
@@ -227,8 +231,11 @@ export const en: TranslationCatalog = {
     addIntermediatePoint: 'Insert midpoint',
     locateMeTooltip: 'Show my current location',
     geoNotSupported: 'Geolocation is not supported by this browser.',
+    renderingUnavailable: 'Map rendering is currently unavailable.',
+    centerRoute: 'Center view on route',
   },
   hud: {
+    ariaHud: 'Hike Companion HUD',
     modeActive: 'Hiking Mode Active',
     liveNavigation: 'Live Navigation',
     distance: 'Distance (km)',

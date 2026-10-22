@@ -49,9 +49,11 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
 ```
 
 ### 3.1 Frontend (PWA)
-* **Framework**: React 19 met TypeScript en Vite (maximale stabiliteit, groot ecosysteem).
+* **Framework**: React 19 met TypeScript en Vite (maximale stabiliteit, modern ecosysteem).
+* **Styling & Design System**: **Tailwind CSS v4** gecombineerd met **shadcn/ui** (Radix UI primitives & Lucide React iconen). Consistente outdoor-typografie, aardetinten (`#24583d` bosgroen, `#f4f3ef` steenwit), flexibele micro-animaties en responsive glassmorphism.
 * **PWA & Offline**: `vite-plugin-pwa` (aangedreven door Google Workbox) voor het offline cachen van de app-shell en kaarttegels.
 * **Kaartmotor**: **MapLibre GL JS** (open-source vector engine onder de Linux Foundation, ondersteund door AWS, Meta en Microsoft).
+* **Internationalisatie (i18n)**: Native, type-safe meertaligheid (Nederlands standaard, Engels ondersteund). Persistente taalvoorkeur in LocalStorage en automatische formatting van afstanden (km), valuta (€) en datums.
 
 ### 3.2 Backend & API
 * **Runtime**: **Cloudflare Workers** (draait op de V8 Edge-runtime met wereldwijde dekking en 0 ms opstarttijd).
@@ -115,10 +117,15 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
 * **Gebruikersprofiel**: Opgeslagen routes, gekochte routes, favoriete POI's en abonnementsstatus.
 
 ### 4.3 Route Planning & Kaartbewerking (Hike Planner)
-* **GPX Import & Export**: Bestaande wandelroutes (GPX/KML) inladen en opslaan.
+* **GPX Import & Export**: Bestaande wandelroutes (GPX/KML) inladen, samenvoegen (stitch) en exporteren.
+* **Camera Auto-Centrering op Route**: Zodra een route geopend wordt (uit de bibliotheek of via GPX-import), centreert en zoomt de kaartcamera automatisch (`fitBounds`) met optimale padding rondom de route, rekening houdend met de actieve zijpanelen op desktop en mobiel.
 * **Interactieve Route-editor**:
   * Puntsgewijs routes uittekenen op de kaart.
   * **Snap to Roads / Trails**: Automatisch snappen naar officiële wandelpaden, bospaden en wegen via OpenStreetMap data.
+  * **Tussenpunten & Draggen**: Routepunten direct verslepen of via split-handles tussenpunten invoegen.
+* **Route Bibliotheek & Beheer**:
+  * Opgeslagen routes inzien met statusfilters (`concept` vs `definitief`), zoekfunctie en metadata-bewerking (titel, locatie, omschrijving, prijs).
+  * Direct laden van opgeslagen routes in de interactieve editor.
 * **Ondergrond-analyse (Surface Breakdown)**:
   * Analyseert de route aan de hand van OSM-tags (`surface`, `tracktype`, `highway`).
   * Realtime overzicht in kilometers en percentages:

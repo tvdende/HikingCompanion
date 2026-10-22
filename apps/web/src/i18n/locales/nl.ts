@@ -94,6 +94,7 @@ export const nl = {
     statusDefinitiveBadge: '🟢 Definitief',
     statDistance: 'Afstand',
     statGain: 'Stijgen',
+    statLoss: 'Dalen',
     statStages: 'Etappes',
     statPoints: 'Punten',
     btnExportGpx: 'Download GPX',
@@ -117,6 +118,7 @@ export const nl = {
     errorGpxExport: 'Er is een fout opgetreden bij het exporteren van de route.',
     closeRouteTooltip: 'Route sluiten',
     defaultRouteTitle: 'Nieuwe Route',
+    stageDefaultTitle: 'Etappe {number}',
   },
   editorToolbar: {
     ariaToolbar: 'Route Editor Tools',
@@ -142,6 +144,8 @@ export const nl = {
     tooltipSave: 'Route opslaan in jouw bibliotheek',
     myRoutes: 'Mijn Routes',
     tooltipMyRoutes: 'Open opgeslagen routes bibliotheek',
+    centerRoute: 'Centreren',
+    tooltipCenterRoute: 'Centreren op route',
   },
   saveModal: {
     title: 'Route Opslaan',
@@ -225,8 +229,11 @@ export const nl = {
     addIntermediatePoint: 'Tussenpunt toevoegen',
     locateMeTooltip: 'Toon mijn huidige locatie',
     geoNotSupported: 'Geolocatie wordt niet ondersteund door deze browser.',
+    renderingUnavailable: 'Kaartweergave is momenteel niet beschikbaar.',
+    centerRoute: 'Centreren op route',
   },
   hud: {
+    ariaHud: 'Hike Companion HUD',
     modeActive: 'Wandelmodus Actief',
     liveNavigation: 'Live Navigatie',
     distance: 'Afstand (km)',

@@ -111,7 +111,7 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
             },
           },
         });
-      } else if (route.request().method() === 'PUT') {
+      } else if (route.request().method() === 'PUT' || route.request().method() === 'PATCH') {
         const body = route.request().postDataJSON();
         await route.fulfill({
           status: 200,
@@ -208,7 +208,7 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
     await expect(metadataModal).not.toBeVisible();
     const updatedCard = page.locator('.saved-route-item').first();
     await expect(updatedCard).toContainText('Definitief');
-    await expect(updatedCard).toContainText('€3.50');
+    await expect(updatedCard).toContainText(/€3[.,]50/);
   });
 
   test('loads route from library onto canvas and reflects metadata on active route card', async ({
@@ -229,7 +229,7 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
     await expect(page.locator('#route-title')).toHaveText('Pieterpad Etappe 1');
     await expect(page.locator('#active-route-status-badge')).toContainText('Definitief');
     await expect(activeCard).toContainText('Groningen');
-    await expect(activeCard).toContainText('€2.99');
+    await expect(activeCard).toContainText(/€2[.,]99/);
   });
 
   test('uploads and stitches multiple GPX files together, updating stage count and distance', async ({

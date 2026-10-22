@@ -8,6 +8,7 @@ export interface MapCanvasProps {
   route?: HikeRoute | null;
   waypoints?: RouteWaypoint[];
   isEditing?: boolean;
+  focusRouteTrigger?: number;
   onAddWaypoint?: (coord: Coordinate) => void;
   onMoveWaypoint?: (waypointId: string, newCoord: Coordinate) => void;
   onDeleteWaypoint?: (waypointId: string) => void;
@@ -19,6 +20,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   route,
   waypoints = [],
   isEditing = false,
+  focusRouteTrigger,
   onAddWaypoint,
   onMoveWaypoint,
   onDeleteWaypoint,
@@ -34,6 +36,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const waypointMarkersRef = useRef<maplibregl.Marker[]>([]);
   const splitHandlesRef = useRef<maplibregl.Marker[]>([]);
   const isMarkerInteractingRef = useRef(false);
+  const prevLoadedRouteIdRef = useRef<string | null>(null);
+  const prevTriggerRef = useRef<number | undefined>(focusRouteTrigger);
+  const hasFittedInitialRef = useRef(false);
 
   const [isLocating, setIsLocating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -127,7 +132,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       mapInstance.current = map;
     } catch (err) {
       console.error('Failed to initialize MapLibre GL:', err);
-      setErrorMessage('Map rendering is currently unavailable.');
+      setErrorMessage(t('map.renderingUnavailable'));
     }
 
     return () => {
@@ -346,6 +351,52 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
   }, [waypoints, isEditing]);
 
+  // Route bounds calculation & auto-centering
+  const fitRouteBounds = useCallback((coords: [number, number][]) => {
+    const map = mapInstance.current;
+    if (!map || coords.length === 0) return;
+
+    let minLng = coords[0][0];
+    let maxLng = coords[0][0];
+    let minLat = coords[0][1];
+    let maxLat = coords[0][1];
+
+    for (const [lng, lat] of coords) {
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+
+    // Handle single point route gracefully
+    if (minLng === maxLng && minLat === maxLat) {
+      map.flyTo({
+        center: [minLng, minLat],
+        zoom: 14,
+        essential: true,
+      });
+      return;
+    }
+
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      {
+        padding: {
+          top: 70,
+          bottom: 70,
+          left: isDesktop ? 360 : 40,
+          right: 40,
+        },
+        maxZoom: 15,
+        duration: 1000,
+      }
+    );
+  }, []);
+
   // Route updates
   useEffect(() => {
     const map = mapInstance.current;
@@ -384,30 +435,31 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
                 .setPopup(new maplibregl.Popup({ offset: 25 }).setText(t('map.finish')))
                 .addTo(map);
             }
-
-            // Fit bounds for static imported GPX route
-            let minLng = allCoords[0][0];
-            let maxLng = allCoords[0][0];
-            let minLat = allCoords[0][1];
-            let maxLat = allCoords[0][1];
-            for (const [lng, lat] of allCoords) {
-              if (lng < minLng) minLng = lng;
-              if (lng > maxLng) maxLng = lng;
-              if (lat < minLat) minLat = lat;
-              if (lat > maxLat) maxLat = lat;
-            }
-            map.fitBounds(
-              [
-                [minLng, minLat],
-                [maxLng, maxLat],
-              ],
-              {
-                padding: { top: 70, bottom: 70, left: 320, right: 70 },
-                maxZoom: 15,
-                duration: 1000,
-              }
-            );
           }
+
+          // Auto-center camera on the route whenever a route is opened or explicitly focused
+          const isNewRouteLoaded = Boolean(
+            route.id &&
+            route.id !== 'active-route' &&
+            route.id !== prevLoadedRouteIdRef.current
+          );
+          const isExplicitFocus = Boolean(
+            focusRouteTrigger !== undefined &&
+            focusRouteTrigger > 0 &&
+            focusRouteTrigger !== prevTriggerRef.current
+          );
+          const isInitialStaticLoad =
+            waypoints.length === 0 && !hasFittedInitialRef.current;
+
+          if (isNewRouteLoaded || isExplicitFocus || isInitialStaticLoad) {
+            fitRouteBounds(allCoords);
+            hasFittedInitialRef.current = true;
+          }
+
+          if (route.id && route.id !== 'active-route') {
+            prevLoadedRouteIdRef.current = route.id;
+          }
+          prevTriggerRef.current = focusRouteTrigger;
         }
       } else {
         clearRoutePolyline();
@@ -419,6 +471,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           staticEndMarkerRef.current.remove();
           staticEndMarkerRef.current = null;
         }
+        prevLoadedRouteIdRef.current = null;
       }
     };
 
@@ -427,7 +480,15 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     } else {
       map.once('load', applyRoute);
     }
-  }, [route, waypoints.length, renderRoutePolyline, clearRoutePolyline]);
+  }, [
+    route,
+    waypoints.length,
+    focusRouteTrigger,
+    renderRoutePolyline,
+    clearRoutePolyline,
+    fitRouteBounds,
+    t,
+  ]);
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {

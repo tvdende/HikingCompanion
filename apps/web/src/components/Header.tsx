@@ -39,11 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Badge variant="destructive">{t('nav.roleAdmin')}</Badge>;
+        return <Badge variant="destructive" className="role-tag admin">{t('nav.roleAdmin')}</Badge>;
       case 'planner':
-        return <Badge variant="secondary">{t('nav.rolePlanner')}</Badge>;
+        return <Badge variant="secondary" className="role-tag planner">{t('nav.rolePlanner')}</Badge>;
       default:
-        return <Badge variant="default">{t('nav.roleHiker')}</Badge>;
+        return <Badge variant="default" className="role-tag user">{t('nav.roleHiker')}</Badge>;
     }
   };
 
