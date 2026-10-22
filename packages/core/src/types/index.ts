@@ -29,12 +29,18 @@ export interface Poi {
   isFavorite?: boolean;
 }
 
+export type TransportType = 'foot' | 'bus' | 'train' | 'ferry';
+
 export interface HikeStage {
   id: string;
   stageNumber: number;
   title: string;
   distanceKm: number;
   coordinates: Coordinate[];
+  notes?: string;
+  transportType?: TransportType;
+  elevationGainMeters?: number;
+  elevationLossMeters?: number;
 }
 
 export interface RouteElevationMetrics {

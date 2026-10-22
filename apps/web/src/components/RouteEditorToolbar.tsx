@@ -14,6 +14,8 @@ import {
   Save,
   BookOpen,
   Loader2,
+  Crosshair,
+  Settings,
 } from 'lucide-react';
 
 export interface RouteEditorToolbarProps {
@@ -28,9 +30,13 @@ export interface RouteEditorToolbarProps {
   onReverse: () => void;
   onSave: () => void;
   onOpenLibrary: () => void;
+  onOpenMetadata?: () => void;
   onClear: () => void;
+  onCenterRoute?: () => void;
+  hasRoute?: boolean;
   waypointCount: number;
   isCalculating?: boolean;
+  sidebarWidth?: number;
 }
 
 export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
@@ -45,15 +51,27 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   onReverse,
   onSave,
   onOpenLibrary,
+  onOpenMetadata,
   onClear,
+  onCenterRoute,
+  hasRoute = false,
   waypointCount,
   isCalculating = false,
+  sidebarWidth,
 }) => {
   const { t } = useTranslation();
+
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 640;
 
   return (
     <div
       id="route-editor-toolbar"
+      style={{
+        left:
+          isDesktop && sidebarWidth
+            ? `calc(${sidebarWidth + 24}px + (100% - ${sidebarWidth + 24}px) / 2)`
+            : undefined,
+      }}
       className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
       role="toolbar"
       aria-label={t('editorToolbar.ariaToolbar')}
@@ -84,7 +102,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           type="button"
           className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'snap'
-               ? 'bg-[#24583d] text-white shadow-xs'
+               ? 'bg-[#24583d] text-white shadow-xs selected'
                : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
            }`}
           onClick={() => onToggleRoutingMode('snap')}
@@ -100,7 +118,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           type="button"
           className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border-none cursor-pointer transition-colors ${
             routingMode === 'direct'
-              ? 'bg-[#24583d] text-white shadow-xs'
+              ? 'bg-[#24583d] text-white shadow-xs selected'
               : 'bg-transparent text-[#576359] hover:text-[#1b261e]'
           }`}
           onClick={() => onToggleRoutingMode('direct')}
@@ -141,6 +159,20 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         >
           <Redo2 className="w-4 h-4" />
         </Button>
+        {onCenterRoute && (
+          <Button
+            id="btn-center-route"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-sm"
+            onClick={onCenterRoute}
+            disabled={!hasRoute && waypointCount === 0}
+            title={t('editorToolbar.tooltipCenterRoute')}
+            aria-label={t('editorToolbar.tooltipCenterRoute')}
+          >
+            <Crosshair className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
@@ -197,6 +229,20 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           <BookOpen className="w-4 h-4" />
           <span>{t('editorToolbar.myRoutes')}</span>
         </Button>
+
+        {onOpenMetadata && (
+          <Button
+            id="btn-edit-metadata-toolbar"
+            variant="secondary"
+            size="sm"
+            onClick={onOpenMetadata}
+            disabled={!hasRoute && waypointCount === 0}
+            title={t('planner.tooltipManageStatus')}
+          >
+            <Settings className="w-4 h-4" />
+            <span>{t('planner.btnManageStatus')}</span>
+          </Button>
+        )}
       </div>
 
       {isCalculating && (

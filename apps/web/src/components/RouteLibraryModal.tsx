@@ -269,7 +269,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                   return (
                     <li
                       key={r.id}
-                      className={`p-4 rounded-xl border flex flex-col gap-2 transition-all ${
+                      className={`saved-route-item p-4 rounded-xl border flex flex-col gap-2 transition-all ${
                         isSelected
                           ? 'bg-[#f2f7f4] border-[#24583d] shadow-xs'
                           : 'bg-white border-[#e5e2da] hover:bg-[#faf9f6]'

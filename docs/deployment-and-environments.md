@@ -20,9 +20,10 @@ flowchart TD
 ```
 
 1. **Pull Request Validatie**: Iedere wijziging moet eerst via een Pull Request worden aangeboden. De CI workflow (`ci.yml`) voert geautomatiseerd alle eenheidstests en Playwright E2E tests (Desktop, iPhone, Pixel) uit.
-2. **Automatische Deploy naar Test**: Na merge naar de `main` branch bouwt GitHub Actions de monorepo en deployt direct naar de Cloudflare Test-omgeving (`deploy-test`).
-3. **Verificatie & Quality Gate**: Ontwikkelaars en testers verifiëren de wijzigingen op de test-URL.
-4. **Beheerdersgoedkeuring (Production Gate)**: De `deploy-production` job is gekoppeld aan de GitHub Environment `production`. Deze job start pas nadat een beheerder in de GitHub Actions UI op **Review deployments** -> **Approve and deploy** heeft geklikt.
+2. **On-demand Feature Branch Test Deployment**: Ontwikkelaars kunnen voor iedere actieve `feat/*` branch een directe uitrol naar de test-omgeving (`hiking-companion-test.pages.dev`) triggeren via GitHub Actions `workflow_dispatch` (target: `test`).
+3. **Automatische Deploy naar Test**: Na merge van een Pull Request naar de `main` branch bouwt GitHub Actions de monorepo en deployt direct naar de Cloudflare Test-omgeving (`deploy-test`).
+4. **Verificatie & Quality Gate**: Ontwikkelaars en testers verifiëren de wijzigingen op de test-URL.
+5. **Beheerdersgoedkeuring (Production Gate)**: De `deploy-production` job is gekoppeld aan de GitHub Environment `production`. Deze job start pas nadat een beheerder in de GitHub Actions UI op **Review deployments** -> **Approve and deploy** heeft geklikt.
 
 ---
 

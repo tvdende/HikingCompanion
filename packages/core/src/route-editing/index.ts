@@ -192,3 +192,4 @@ export function extractWaypointsFromRoute(
   return { waypoints, segments };
 }
 
+export * from './stages.js';

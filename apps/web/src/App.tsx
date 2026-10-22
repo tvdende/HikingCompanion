@@ -2,14 +2,17 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type {
   AppMode,
   HikeRoute,
+  HikeStage,
   Coordinate,
   RouteWaypoint,
   RouteSegment,
   RoutingMode,
   RouteStatus,
+  RouteStageDefinition,
 } from '@hiking-companion/core';
 import {
   parseGpx,
+  detectGpxTracks,
   stitchGpxRoutes,
   serializeToGpx,
   interpolateStraightLine,
@@ -17,9 +20,13 @@ import {
   deleteWaypoint,
   moveWaypoint,
   reverseWaypoints,
-  flattenRouteCoordinates,
   calculateHaversineDistanceKm,
-  extractWaypointsFromRoute,
+  extractWaypointsPerStage,
+  splitRouteAtWaypoint,
+  mergeStages,
+  reorderStages,
+  deleteStageAndPoints,
+  calculateStageMetrics,
 } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
@@ -30,11 +37,19 @@ import { RouteEditorToolbar } from './components/RouteEditorToolbar';
 import { SaveRouteModal, type SaveRouteData } from './components/SaveRouteModal';
 import { RouteLibraryModal } from './components/RouteLibraryModal';
 import { RouteMetadataModal } from './components/RouteMetadataModal';
+import { StageManagerPanel } from './components/StageManagerPanel';
+import { GpxImportModal } from './components/GpxImportModal';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
-import { Download, Plus, Check, Edit3, Settings, Save, BookOpen } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
+
+interface HistorySnapshot {
+  waypoints: RouteWaypoint[];
+  stages: RouteStageDefinition[];
+  activeStageId: string | null;
+}
 
 export const App: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -46,49 +61,160 @@ export const App: React.FC = () => {
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
 
-  // Route & Editor State
+  // Route & Multi-Stage State
   const [currentRoute, setCurrentRoute] = useState<HikeRoute | null>(null);
   const [activeSavedRouteId, setActiveSavedRouteId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [routingMode, setRoutingMode] = useState<RoutingMode>('snap');
+  const [stages, setStages] = useState<RouteStageDefinition[]>([
+    { id: 'stage-1', stageNumber: 1, title: 'Etappe 1', transportType: 'foot' },
+  ]);
+  const [activeStageId, setActiveStageId] = useState<string | null>('stage-1');
   const [waypoints, setWaypoints] = useState<RouteWaypoint[]>([]);
-  const [, setSegments] = useState<RouteSegment[]>([]);
-  const [history, setHistory] = useState<RouteWaypoint[][]>([[]]);
+  const [segments, setSegments] = useState<RouteSegment[]>([]);
+  const [history, setHistory] = useState<HistorySnapshot[]>([
+    {
+      waypoints: [],
+      stages: [{ id: 'stage-1', stageNumber: 1, title: 'Etappe 1', transportType: 'foot' }],
+      activeStageId: 'stage-1',
+    },
+  ]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [focusRouteTrigger, setFocusRouteTrigger] = useState(0);
 
-  // File Upload State
+  // File Upload State & GPX Choice Modal
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isAppendMode, setIsAppendMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to commit waypoints change to history stack
-  const applyWaypointsUpdate = useCallback(
-    (newWaypoints: RouteWaypoint[]) => {
+  const [pendingGpxPayload, setPendingGpxPayload] = useState<{
+    files: File[];
+    texts: string[];
+  } | null>(null);
+  const [gpxModalConfig, setGpxModalConfig] = useState<{
+    isOpen: boolean;
+    type: 'append-choice' | 'multi-track' | 'multi-file';
+    trackCount: number;
+  }>({
+    isOpen: false,
+    type: 'append-choice',
+    trackCount: 1,
+  });
+
+  // Resizable Sidebar State with persistent localStorage
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('hiking_planner_sidebar_width');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 340 && parsed <= 680) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return 390;
+  });
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+
+  const handleStartResizeSidebar = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+  };
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const minWidth = 340;
+      const maxWidth = Math.min(680, window.innerWidth - 60);
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - 16));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+      try {
+        localStorage.setItem('hiking_planner_sidebar_width', sidebarWidth.toString());
+      } catch {
+        // Ignore
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar, sidebarWidth]);
+
+  // Calculate dynamic stage metrics (hiking vs transit breakdown)
+  const stageMetrics = calculateStageMetrics(stages, segments, waypoints);
+
+  // Helper to commit state changes to undo/redo history stack
+  const applyStateUpdate = useCallback(
+    (
+      newWaypoints: RouteWaypoint[],
+      newStages: RouteStageDefinition[] = stages,
+      newActiveStageId: string | null = activeStageId
+    ) => {
       setWaypoints(newWaypoints);
+      setStages(newStages);
+      setActiveStageId(newActiveStageId);
+
+      const snapshot: HistorySnapshot = {
+        waypoints: newWaypoints,
+        stages: newStages,
+        activeStageId: newActiveStageId,
+      };
+
       const nextHistory = history.slice(0, historyIndex + 1);
-      nextHistory.push(newWaypoints);
+      nextHistory.push(snapshot);
       if (nextHistory.length > 50) nextHistory.shift();
       setHistory(nextHistory);
       setHistoryIndex(nextHistory.length - 1);
     },
-    [history, historyIndex]
+    [stages, activeStageId, history, historyIndex]
   );
 
-  // Recalculate route polyline & segments whenever waypoints or routing mode change
+  // Skip route recalculation flag (e.g. when opening a pre-computed saved route or importing GPX)
+  const skipRecalculateRef = useRef(false);
+
+  // Recalculate route polyline & segments whenever waypoints, routing mode, or stages change
   useEffect(() => {
+    if (skipRecalculateRef.current) {
+      skipRecalculateRef.current = false;
+      return;
+    }
+
     let isCancelled = false;
 
     const updateRoute = async () => {
       if (waypoints.length === 0) {
         setSegments([]);
+        setCurrentRoute(null);
         return;
       }
 
       if (waypoints.length === 1) {
         setSegments([]);
         const singlePt = waypoints[0].coordinate;
+        const targetStageId = waypoints[0].stageId || stages[0]?.id || 'stage-1';
+
+        const updatedStages: HikeStage[] = stages.map((s) => ({
+          id: s.id,
+          stageNumber: s.stageNumber,
+          title: s.title,
+          notes: s.notes,
+          transportType: s.transportType || 'foot',
+          distanceKm: 0,
+          coordinates: s.id === targetStageId ? [singlePt] : [],
+        }));
+
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
           title: currentRoute?.title || t('planner.defaultRouteTitle'),
@@ -97,15 +223,7 @@ export const App: React.FC = () => {
           status: currentRoute?.status || 'draft',
           priceEur: currentRoute?.priceEur ?? 0,
           totalDistanceKm: 0,
-          stages: [
-            {
-              id: 'stage-1',
-              stageNumber: 1,
-              title: 'Etappe 1',
-              distanceKm: 0,
-              coordinates: [singlePt],
-            },
-          ],
+          stages: updatedStages,
           elevationMetrics: { elevationGainMeters: 0, elevationLossMeters: 0 },
           createdAt: currentRoute?.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -187,26 +305,77 @@ export const App: React.FC = () => {
         if (isCancelled) return;
 
         setSegments(newSegments);
-        const flattened = flattenRouteCoordinates(waypoints, newSegments);
+
+        // Partition coordinates and metrics per stage
+        const hikeStages: HikeStage[] = stages.map((stage) => {
+          const stageWps = waypoints.filter(
+            (w) => w.stageId === stage.id || (!w.stageId && stage.stageNumber === 1)
+          );
+          const stageCoords: Coordinate[] = [];
+
+          if (stageWps.length === 1) {
+            stageCoords.push(stageWps[0].coordinate);
+          } else if (stageWps.length > 1) {
+            const stageWpIds = new Set(stageWps.map((w) => w.id));
+            const stageSegs = newSegments.filter(
+              (seg) => stageWpIds.has(seg.fromWaypointId) && stageWpIds.has(seg.toWaypointId)
+            );
+
+            stageSegs.forEach((seg, sIdx) => {
+              if (sIdx === 0) {
+                stageCoords.push(...seg.coordinates);
+              } else {
+                stageCoords.push(...seg.coordinates.slice(1));
+              }
+            });
+
+            // Fallback: If segments didn't provide coordinates or routing failed, interpolate straight lines
+            if (stageCoords.length < 2 && stageWps.length >= 2) {
+              stageCoords.length = 0;
+              for (let w = 0; w < stageWps.length - 1; w++) {
+                const line = interpolateStraightLine(
+                  stageWps[w].coordinate,
+                  stageWps[w + 1].coordinate
+                );
+                if (w === 0) {
+                  stageCoords.push(...line);
+                } else {
+                  stageCoords.push(...line.slice(1));
+                }
+              }
+            } else if (stageCoords.length === 0 && stageWps.length === 1) {
+              stageCoords.push(stageWps[0].coordinate);
+            }
+          }
+
+          let stageDistMeters = 0;
+          for (let c = 0; c < stageCoords.length - 1; c++) {
+            stageDistMeters +=
+              calculateHaversineDistanceKm(stageCoords[c], stageCoords[c + 1]) * 1000;
+          }
+
+          return {
+            id: stage.id,
+            stageNumber: stage.stageNumber,
+            title: stage.title,
+            notes: stage.notes,
+            transportType: stage.transportType || 'foot',
+            distanceKm: Number((stageDistMeters / 1000).toFixed(2)),
+            coordinates: stageCoords,
+          };
+        });
+
         const distKm = Number((totalMeters / 1000).toFixed(2));
 
         setCurrentRoute({
           id: activeSavedRouteId || 'active-route',
-          title: currentRoute?.title || 'Nieuwe Route',
+          title: currentRoute?.title || t('planner.defaultRouteTitle'),
           description: currentRoute?.description,
           location: currentRoute?.location,
           status: currentRoute?.status || 'draft',
           priceEur: currentRoute?.priceEur ?? 0,
           totalDistanceKm: distKm,
-          stages: [
-            {
-              id: 'stage-1',
-              stageNumber: 1,
-              title: 'Etappe 1',
-              distanceKm: distKm,
-              coordinates: flattened,
-            },
-          ],
+          stages: hikeStages,
           elevationMetrics: {
             elevationGainMeters: 0,
             elevationLossMeters: 0,
@@ -228,43 +397,52 @@ export const App: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [waypoints, routingMode, activeSavedRouteId]);
+  }, [waypoints, stages, routingMode, activeSavedRouteId, t]);
 
-  // Editor Actions
+  // Editor Waypoint Actions
   const handleAddWaypoint = (coord: Coordinate) => {
+    const currentStageId = activeStageId || stages[0]?.id || 'stage-1';
     const newWp: RouteWaypoint = {
       id: `wp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       coordinate: coord,
       routingMode,
+      stageId: currentStageId,
     };
-    applyWaypointsUpdate([...waypoints, newWp]);
+    applyStateUpdate([...waypoints, newWp], stages, currentStageId);
   };
 
   const handleMoveWaypoint = (wpId: string, newCoord: Coordinate) => {
     const updated = moveWaypoint(waypoints, wpId, newCoord);
-    applyWaypointsUpdate(updated);
+    applyStateUpdate(updated, stages, activeStageId);
   };
 
   const handleDeleteWaypoint = (wpId: string) => {
     const updated = deleteWaypoint(waypoints, wpId);
-    applyWaypointsUpdate(updated);
+    applyStateUpdate(updated, stages, activeStageId);
   };
 
   const handleInsertWaypoint = (index: number, coord: Coordinate) => {
+    const inheritedStageId =
+      waypoints[Math.max(0, index - 1)]?.stageId || activeStageId || stages[0]?.id || 'stage-1';
+
     const newWp: RouteWaypoint = {
       id: `wp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       coordinate: coord,
       routingMode,
+      stageId: inheritedStageId,
     };
     const updated = insertWaypoint(waypoints, newWp, index);
-    applyWaypointsUpdate(updated);
+    applyStateUpdate(updated, stages, activeStageId);
   };
 
   const handleUndo = () => {
     if (historyIndex > 0) {
       const newIdx = historyIndex - 1;
       setHistoryIndex(newIdx);
-      setWaypoints(history[newIdx]);
+      const snapshot = history[newIdx];
+      setWaypoints(snapshot.waypoints);
+      setStages(snapshot.stages);
+      setActiveStageId(snapshot.activeStageId);
     }
   };
 
@@ -272,20 +450,92 @@ export const App: React.FC = () => {
     if (historyIndex < history.length - 1) {
       const newIdx = historyIndex + 1;
       setHistoryIndex(newIdx);
-      setWaypoints(history[newIdx]);
+      const snapshot = history[newIdx];
+      setWaypoints(snapshot.waypoints);
+      setStages(snapshot.stages);
+      setActiveStageId(snapshot.activeStageId);
     }
   };
 
   const handleReverse = () => {
     if (waypoints.length < 2) return;
     const reversed = reverseWaypoints(waypoints);
-    applyWaypointsUpdate(reversed);
+    applyStateUpdate(reversed, stages, activeStageId);
   };
 
   const handleClear = () => {
-    applyWaypointsUpdate([]);
+    skipRecalculateRef.current = true;
+    const freshStage: RouteStageDefinition = {
+      id: 'stage-1',
+      stageNumber: 1,
+      title: t('planner.stageDefaultTitle', { number: 1 }),
+      transportType: 'foot',
+    };
+    setWaypoints([]);
+    setStages([freshStage]);
+    setActiveStageId('stage-1');
+    setHistory([{ waypoints: [], stages: [freshStage], activeStageId: 'stage-1' }]);
+    setHistoryIndex(0);
     setCurrentRoute(null);
     setActiveSavedRouteId(null);
+  };
+
+  // Stage Management Actions
+  const handleSplitStage = (waypointId: string) => {
+    try {
+      const result = splitRouteAtWaypoint(stages, waypoints, waypointId);
+      applyStateUpdate(result.waypoints, result.stages, result.newStageId);
+    } catch (err: any) {
+      alert(err.message || t('stages.splitError'));
+    }
+  };
+
+  const handleMergeStage = (stageId: string) => {
+    try {
+      const result = mergeStages(stages, waypoints, stageId);
+      applyStateUpdate(result.waypoints, result.stages, result.activeStageId);
+    } catch (err: any) {
+      alert(err.message || t('stages.mergeError'));
+    }
+  };
+
+  const handleReorderStages = (newOrder: string[]) => {
+    const result = reorderStages(stages, waypoints, newOrder);
+    applyStateUpdate(result.waypoints, result.stages, activeStageId);
+  };
+
+  const handleDeleteStage = (stageId: string) => {
+    const result = deleteStageAndPoints(stages, waypoints, stageId);
+    applyStateUpdate(result.waypoints, result.stages, result.activeStageId);
+  };
+
+  const handleAddStage = () => {
+    const nextNum = stages.length + 1;
+    const newStageId = `stage-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newStage: RouteStageDefinition = {
+      id: newStageId,
+      stageNumber: nextNum,
+      title: t('planner.stageDefaultTitle', { number: nextNum }),
+      transportType: 'foot',
+    };
+    applyStateUpdate(waypoints, [...stages, newStage], newStageId);
+  };
+
+  const handleUpdateStageMetadata = (
+    stageId: string,
+    updates: Partial<RouteStageDefinition>
+  ) => {
+    const updated = stages.map((s) => (s.id === stageId ? { ...s, ...updates } : s));
+    applyStateUpdate(waypoints, updated, activeStageId);
+  };
+
+  const handleSelectStage = (stageId: string) => {
+    setActiveStageId(stageId);
+  };
+
+  const handleZoomFullRoute = () => {
+    setActiveStageId(null);
+    setFocusRouteTrigger((prev) => prev + 1);
   };
 
   // Route Persistence Actions
@@ -299,15 +549,15 @@ export const App: React.FC = () => {
       status: saveData.status || 'draft',
       priceEur: saveData.priceEur ?? 0,
       totalDistanceKm: currentRoute.totalDistanceKm,
-      coordinates: currentRoute.stages[0]?.coordinates || [],
-      waypoints,
+      coordinates: currentRoute.stages.flatMap((s) => s.coordinates || []),
       stages: currentRoute.stages,
       elevationMetrics: currentRoute.elevationMetrics,
+      waypoints,
     };
 
-    const isUpdate = Boolean(activeSavedRouteId);
-    const url = isUpdate ? `/api/routes/${activeSavedRouteId}` : '/api/routes';
-    const method = isUpdate ? 'PUT' : 'POST';
+    const isExisting = Boolean(activeSavedRouteId);
+    const url = isExisting ? `/api/routes/${activeSavedRouteId}` : '/api/routes';
+    const method = isExisting ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
       method,
@@ -318,7 +568,7 @@ export const App: React.FC = () => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Fout bij opslaan van de route.');
+      throw new Error(errData.error || t('saveModal.errSaveFailed'));
     }
 
     const data = await res.json();
@@ -344,7 +594,7 @@ export const App: React.FC = () => {
     });
 
     if (!res.ok) {
-      throw new Error('Kon route niet ophalen.');
+      throw new Error(t('libraryModal.loadError'));
     }
 
     const data = await res.json();
@@ -372,74 +622,213 @@ export const App: React.FC = () => {
       updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
     };
 
+    skipRecalculateRef.current = true;
     setCurrentRoute(loadedRoute);
     setActiveSavedRouteId(r.id);
+    setFocusRouteTrigger((prev) => prev + 1);
 
-    if (r.waypoints && r.waypoints.length > 0) {
-      setWaypoints(r.waypoints);
-      setHistory([r.waypoints]);
-      setHistoryIndex(0);
-    } else {
-      const coords = r.coordinates || [];
-      if (coords.length > 0) {
-        const generatedWps: RouteWaypoint[] = [
-          { id: 'wp-start', coordinate: coords[0], routingMode: 'snap' },
-          ...(coords.length > 1
-            ? [
-                {
-                  id: 'wp-end',
-                  coordinate: coords[coords.length - 1],
-                  routingMode: 'snap' as const,
-                },
-              ]
-            : []),
-        ];
-        setWaypoints(generatedWps);
-        setHistory([generatedWps]);
-        setHistoryIndex(0);
-      }
-    }
+    const { stages: extractedStages, waypoints: extractedWps } =
+      extractWaypointsPerStage(loadedRoute);
 
-    setIsEditing(true);
+    setStages(extractedStages);
+    setActiveStageId(extractedStages[0]?.id || 'stage-1');
+    setWaypoints(extractedWps);
+    setHistory([
+      {
+        waypoints: extractedWps,
+        stages: extractedStages,
+        activeStageId: extractedStages[0]?.id || 'stage-1',
+      },
+    ]);
+    setHistoryIndex(0);
+    setIsEditing(false);
   };
 
-  // Multi-GPX File handling and Track Stitching
-  const handleGpxFiles = async (files: File[], append = false) => {
-    if (!files || files.length === 0) return;
-    setFileError(null);
-
+  // GPX Import Processing Engine
+  const executeGpxProcessing = (
+    files: File[],
+    texts: string[],
+    strategy: 'append-active' | 'new-stage' | 'separate-stages' | 'merged-single'
+  ) => {
     try {
+      const mergeSegments = strategy === 'merged-single';
       const parsedRoutes: HikeRoute[] = [];
-      for (const file of files) {
-        const text = await file.text();
+
+      files.forEach((file, idx) => {
+        const text = texts[idx];
         const defaultTitle = file.name.replace(/\.gpx$/i, '');
-        parsedRoutes.push(parseGpx(text, defaultTitle));
-      }
+        parsedRoutes.push(parseGpx(text, defaultTitle, { mergeSegments }));
+      });
 
       let finalRoute: HikeRoute;
-      if (append && currentRoute) {
-        finalRoute = stitchGpxRoutes([currentRoute, ...parsedRoutes]);
-      } else if (parsedRoutes.length === 1) {
+      if (parsedRoutes.length === 1) {
         finalRoute = parsedRoutes[0];
       } else {
         finalRoute = stitchGpxRoutes(parsedRoutes);
       }
 
+      if (strategy === 'append-active' && currentRoute) {
+        // Append points from finalRoute to active stage
+        const { waypoints: newWps } = extractWaypointsPerStage(finalRoute);
+        const currentTargetStageId = activeStageId || stages[0]?.id || 'stage-1';
+        const taggedWps = newWps.map((w) => ({ ...w, stageId: currentTargetStageId }));
+
+        applyStateUpdate([...waypoints, ...taggedWps], stages, currentTargetStageId);
+        setFocusRouteTrigger((prev) => prev + 1);
+        setIsEditing(true);
+        return;
+      }
+
+      if (
+        (strategy === 'new-stage' || (strategy === 'separate-stages' && currentRoute)) &&
+        currentRoute
+      ) {
+        // Add as separate new stages preserving existing stages
+        const existingStages = [...stages];
+        const newStagesList: RouteStageDefinition[] = [...existingStages];
+        const allNewTaggedWps: RouteWaypoint[] = [];
+
+        const { stages: extractedStages, waypoints: extractedWps } =
+          extractWaypointsPerStage(finalRoute);
+
+        extractedStages.forEach((extStage, idx) => {
+          const nextNum = newStagesList.length + 1;
+          const stageId =
+            extStage.id ||
+            `stage-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+          newStagesList.push({
+            id: stageId,
+            stageNumber: nextNum,
+            title: extStage.title || `Etappe ${nextNum}`,
+            notes: extStage.notes,
+            transportType: extStage.transportType || 'foot',
+          });
+
+          const stageWps = extractedWps.filter((w) => w.stageId === extStage.id);
+          allNewTaggedWps.push(...stageWps.map((w) => ({ ...w, stageId })));
+        });
+
+        // Also update currentRoute directly with the new stages and their coordinates
+        const updatedCurrentStages: HikeStage[] = [
+          ...currentRoute.stages,
+          ...finalRoute.stages.map((s, idx) => ({
+            ...s,
+            stageNumber: currentRoute.stages.length + 1 + idx,
+            id: newStagesList[existingStages.length + idx]?.id || s.id,
+          })),
+        ];
+
+        skipRecalculateRef.current = true;
+        setCurrentRoute({
+          ...currentRoute,
+          stages: updatedCurrentStages,
+          totalDistanceKm: Number(
+            (currentRoute.totalDistanceKm + finalRoute.totalDistanceKm).toFixed(2)
+          ),
+        });
+
+        applyStateUpdate(
+          [...waypoints, ...allNewTaggedWps],
+          newStagesList,
+          newStagesList[existingStages.length]?.id || activeStageId
+        );
+        setFocusRouteTrigger((prev) => prev + 1);
+        setIsEditing(true);
+        return;
+      }
+
+      // Default / fresh import: separate stages or single merged stage
+      skipRecalculateRef.current = true;
       setCurrentRoute(finalRoute);
       setActiveSavedRouteId(null);
+      setFocusRouteTrigger((prev) => prev + 1);
 
-      // Extract draggable waypoints from the stitched track
-      const { waypoints: extractedWps, segments: extractedSegments } =
-        extractWaypointsFromRoute(finalRoute);
+      const { stages: extractedStages, waypoints: extractedWps } =
+        extractWaypointsPerStage(finalRoute);
+
+      setStages(extractedStages);
+      setActiveStageId(extractedStages[0]?.id || 'stage-1');
       setWaypoints(extractedWps);
-      setSegments(extractedSegments);
-      setHistory([extractedWps]);
+      setHistory([
+        {
+          waypoints: extractedWps,
+          stages: extractedStages,
+          activeStageId: extractedStages[0]?.id || 'stage-1',
+        },
+      ]);
       setHistoryIndex(0);
       setIsEditing(true);
     } catch (err: any) {
-      console.error('GPX parse/stitching error:', err);
+      console.error('GPX parse error:', err);
       setFileError(err.message || t('planner.errorGpxProcess'));
     }
+  };
+
+  const handleGpxFiles = async (files: File[], append = false) => {
+    if (!files || files.length === 0) return;
+    setFileError(null);
+
+    try {
+      const texts: string[] = [];
+      for (const file of files) {
+        texts.push(await file.text());
+      }
+
+      // Check if user has an existing active route
+      if (!append && waypoints.length > 0 && currentRoute) {
+        setPendingGpxPayload({ files, texts });
+        setGpxModalConfig({
+          isOpen: true,
+          type: files.length > 1 ? 'multi-file' : 'append-choice',
+          trackCount: files.length,
+        });
+        return;
+      }
+
+      // Check if multiple files uploaded without active route
+      if (files.length > 1) {
+        setPendingGpxPayload({ files, texts });
+        setGpxModalConfig({
+          isOpen: true,
+          type: 'multi-file',
+          trackCount: files.length,
+        });
+        return;
+      }
+
+      // Check if single file has multiple track segments
+      if (files.length === 1) {
+        const info = detectGpxTracks(texts[0]);
+        if (info.hasMultipleStages) {
+          setPendingGpxPayload({ files, texts });
+          setGpxModalConfig({
+            isOpen: true,
+            type: 'multi-track',
+            trackCount: info.trackCount || info.segmentCount,
+          });
+          return;
+        }
+      }
+
+      executeGpxProcessing(files, texts, append ? 'append-active' : 'separate-stages');
+    } catch (err: any) {
+      console.error('GPX reading error:', err);
+      setFileError(err.message || t('planner.errorGpxProcess'));
+    }
+  };
+
+  const handleGpxModalChoice = (
+    choice: 'append-active' | 'new-stage' | 'separate-stages' | 'merged-single'
+  ) => {
+    setGpxModalConfig((prev) => ({ ...prev, isOpen: false }));
+    if (!pendingGpxPayload) return;
+
+    executeGpxProcessing(
+      pendingGpxPayload.files,
+      pendingGpxPayload.texts,
+      choice
+    );
+    setPendingGpxPayload(null);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -550,20 +939,31 @@ export const App: React.FC = () => {
                 onReverse={handleReverse}
                 onSave={() => setIsSaveModalOpen(true)}
                 onOpenLibrary={() => setIsLibraryModalOpen(true)}
+                onOpenMetadata={() => setIsMetadataModalOpen(true)}
                 onClear={handleClear}
+                onCenterRoute={handleZoomFullRoute}
+                hasRoute={Boolean(currentRoute && currentRoute.stages.length > 0)}
                 waypointCount={waypoints.length}
                 isCalculating={isCalculating}
+                sidebarWidth={sidebarWidth}
               />
             )}
 
             <MapCanvas
               route={currentRoute}
               waypoints={waypoints}
+              stages={stages}
+              activeStageId={activeStageId}
               isEditing={isEditing}
+              focusRouteTrigger={focusRouteTrigger}
+              sidebarWidth={sidebarWidth}
               onAddWaypoint={handleAddWaypoint}
               onMoveWaypoint={handleMoveWaypoint}
               onDeleteWaypoint={handleDeleteWaypoint}
               onInsertWaypoint={handleInsertWaypoint}
+              onSplitStage={handleSplitStage}
+              onMergeStage={handleMergeStage}
+              onSelectStage={handleSelectStage}
             />
 
             {isDraggingFile && (
@@ -578,7 +978,22 @@ export const App: React.FC = () => {
 
             {/* Planner Mode Overlay Panel */}
             {mode === 'planner' && (
-              <aside id="planner-panel" className="planner-sidebar" aria-label={t('planner.sidebarTitle')}>
+              <aside
+                id="planner-panel"
+                className="planner-sidebar"
+                aria-label={t('planner.sidebarTitle')}
+                style={{ width: `${sidebarWidth}px` }}
+              >
+                {/* Drag-to-resize handle */}
+                <div
+                  className={`sidebar-resizer ${isResizingSidebar ? 'is-resizing' : ''}`}
+                  onMouseDown={handleStartResizeSidebar}
+                  title={t('stages.resizeSidebarTooltip')}
+                  aria-label={t('stages.resizeSidebarTooltip')}
+                >
+                  <div className="resizer-pill" />
+                </div>
+
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-[#1b261e]">
                     {t('planner.sidebarTitle')}
@@ -604,7 +1019,9 @@ export const App: React.FC = () => {
                             id="active-route-status-badge"
                             variant={currentRoute.status === 'definitive' ? 'success' : 'secondary'}
                           >
-                            {currentRoute.status === 'definitive' ? t('planner.statusDefinitiveBadge') : t('planner.statusDraftBadge')}
+                            {currentRoute.status === 'definitive'
+                              ? t('planner.statusDefinitiveBadge')
+                              : t('planner.statusDraftBadge')}
                           </Badge>
                           {currentRoute.priceEur !== undefined && currentRoute.priceEur > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4f3ef] text-[#1b261e] font-semibold border border-[#e5e2da]">
@@ -646,9 +1063,15 @@ export const App: React.FC = () => {
                         </span>
                       </div>
                       <div className="trail-stat-box">
+                        <span className="stat-label">{t('planner.statLoss')}</span>
+                        <span id="stat-elevation-loss" className="stat-num text-loss">
+                          -{currentRoute.elevationMetrics?.elevationLossMeters ?? 0} {t('common.m')}
+                        </span>
+                      </div>
+                      <div className="trail-stat-box">
                         <span className="stat-label">{t('planner.statStages')}</span>
                         <span id="stat-stage-count" className="stat-num">
-                          {currentRoute.stages.length}
+                          {stages.length}
                         </span>
                       </div>
                       <div className="trail-stat-box">
@@ -664,88 +1087,44 @@ export const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
                       <Button
                         id="btn-export-gpx"
                         variant="primary"
-                        className="w-full"
+                        size="sm"
+                        className="flex-1 text-xs py-1.5 px-2"
                         onClick={handleExportGpx}
+                        title={t('planner.btnExportGpx')}
                       >
-                        <Download className="w-4 h-4" />
-                        <span>{t('planner.btnExportGpx')}</span>
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('planner.btnExportGpx')}</span>
                       </Button>
                       <Button
                         id="btn-append-gpx"
                         variant="secondary"
                         size="sm"
-                        className="w-full"
+                        className="flex-1 text-xs py-1.5 px-2"
                         onClick={triggerAppendGpx}
                         title={t('planner.tooltipAppendGpx')}
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>{t('planner.btnAppendGpx')}</span>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('planner.btnAppendGpx')}</span>
                       </Button>
                     </div>
 
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        id="btn-edit-active-route"
-                        variant={isEditing ? 'primary' : 'secondary'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          if (!isEditing && waypoints.length === 0 && currentRoute) {
-                            const { waypoints: extractedWps, segments: extractedSegments } =
-                              extractWaypointsFromRoute(currentRoute);
-                            setWaypoints(extractedWps);
-                            setSegments(extractedSegments);
-                            setHistory([extractedWps]);
-                            setHistoryIndex(0);
-                          }
-                          setIsEditing((prev) => !prev);
-                        }}
-                      >
-                        {isEditing ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                        <span>
-                          {isEditing ? t('planner.btnFinishEditing') : t('planner.btnDragPoints')}
-                        </span>
-                      </Button>
-                      <Button
-                        id="btn-edit-metadata-active"
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsMetadataModalOpen(true)}
-                        title={t('planner.tooltipManageStatus')}
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>{t('planner.btnManageStatus')}</span>
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        id="btn-save-route-sidebar"
-                        variant="primary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsSaveModalOpen(true)}
-                        disabled={isCalculating}
-                      >
-                        <Save className="w-4 h-4" />
-                        <span>{t('planner.btnSave')}</span>
-                      </Button>
-                      <Button
-                        id="btn-open-route-library-sidebar"
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsLibraryModalOpen(true)}
-                      >
-                        <BookOpen className="w-4 h-4" />
-                        <span>{t('planner.btnLibrary')}</span>
-                      </Button>
-                    </div>
+                    {/* Stage Manager Panel Component */}
+                    <StageManagerPanel
+                      stages={stages}
+                      stageMetrics={stageMetrics}
+                      activeStageId={activeStageId}
+                      onSelectStage={handleSelectStage}
+                      onAddStage={handleAddStage}
+                      onDeleteStage={handleDeleteStage}
+                      onMergeStage={handleMergeStage}
+                      onReorderStages={handleReorderStages}
+                      onUpdateStageMetadata={handleUpdateStageMetadata}
+                      onZoomFullRoute={handleZoomFullRoute}
+                    />
                   </div>
                 ) : (
                   <>
@@ -794,7 +1173,7 @@ export const App: React.FC = () => {
               <section
                 id="companion-hud"
                 className="companion-hud"
-                aria-label="Hike Companion HUD"
+                aria-label={t('hud.ariaHud')}
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -867,6 +1246,17 @@ export const App: React.FC = () => {
         route={currentRoute}
         onSaveSuccess={(updated) => {
           setCurrentRoute((prev) => (prev ? { ...prev, ...updated } : null));
+        }}
+      />
+
+      <GpxImportModal
+        isOpen={gpxModalConfig.isOpen}
+        type={gpxModalConfig.type}
+        trackCount={gpxModalConfig.trackCount}
+        onChoice={handleGpxModalChoice}
+        onClose={() => {
+          setGpxModalConfig((prev) => ({ ...prev, isOpen: false }));
+          setPendingGpxPayload(null);
         }}
       />
     </div>

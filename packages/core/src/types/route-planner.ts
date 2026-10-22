@@ -7,6 +7,15 @@ export interface RouteWaypoint {
   coordinate: Coordinate;
   routingMode: RoutingMode;
   name?: string;
+  stageId?: string;
+}
+
+export interface RouteStageDefinition {
+  id: string;
+  stageNumber: number;
+  title: string;
+  notes?: string;
+  transportType?: 'foot' | 'bus' | 'train' | 'ferry';
 }
 
 export interface RouteSegment {

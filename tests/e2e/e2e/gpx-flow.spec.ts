@@ -57,7 +57,7 @@ test.describe('GPX Import, Elevation Stats & Export Flow', () => {
     await expect(lossStat).toContainText('-50 m');
 
     const pointStat = page.locator('#stat-point-count');
-    await expect(pointStat).toContainText('6 pts');
+    await expect(pointStat).toContainText(/6 (pts|wps)/);
   });
 
   test('exports the active route as a GPX file download', async ({ page }) => {
