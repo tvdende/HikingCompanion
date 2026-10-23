@@ -14,8 +14,13 @@ test.describe('PWA Application Shell & Mode Switcher', () => {
   test('renders the application shell with header and brand', async ({ page }) => {
     await page.goto('/');
     const brand = page.locator('#header-brand');
-    await expect(brand).toBeVisible();
     await expect(brand).toHaveText('Hiking Companion');
+    // Compact screens (< 768px) show only the brand icon; the title is hidden to save space.
+    if ((page.viewportSize()?.width ?? 1280) >= 768) {
+      await expect(brand).toBeVisible();
+    } else {
+      await expect(page.locator('#app-header .brand-icon')).toBeVisible();
+    }
   });
 
   test('renders guest product showcase when unauthenticated', async ({ page }) => {

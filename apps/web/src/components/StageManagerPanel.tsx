@@ -179,7 +179,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                 <span
                   className="stage-badge-tag"
                   style={{ backgroundColor: stageColor }}
-                  title={`Etappe ${stage.stageNumber}`}
+                  title={t('stages.stageNumber', { number: stage.stageNumber })}
                 >
                   E{stage.stageNumber}
                 </span>
@@ -223,7 +223,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
               <div className="stage-card-row">
                 <div className="stage-card-metrics">
                   <span className="metric-item">
-                    <strong>{metric?.distanceKm ?? 0}</strong> km
+                    <strong>{metric?.distanceKm ?? 0}</strong> {t('common.km')}
                   </span>
                   {(metric?.elevationGainMeters ?? 0) > 0 && (
                     <span className="metric-item">
@@ -231,7 +231,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                     </span>
                   )}
                   <span className="metric-item">
-                    <strong>{metric?.waypointCount ?? 0}</strong> pt
+                    <strong>{metric?.waypointCount ?? 0}</strong> {t('stages.waypointUnit')}
                   </span>
                 </div>
 

@@ -54,7 +54,8 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
 * **PWA & Offline**: `vite-plugin-pwa` (aangedreven door Google Workbox) voor het offline cachen van de app-shell en kaarttegels.
 * **Kaartmotor**: **MapLibre GL JS** (open-source vector engine onder de Linux Foundation, ondersteund door AWS, Meta en Microsoft).
 * **Internationalisatie (i18n)**: Native, type-safe meertaligheid (Nederlands standaard, Engels ondersteund). Persistente taalvoorkeur in LocalStorage en automatische formatting van afstanden (km), valuta (€) en datums.
-* **In-app feedback**: Destructieve acties gebruiken een toegankelijke bevestigingsmodal met focus-trap, Escape-sluiten en focusherstel. Actie-uitkomsten gebruiken een globale, gelokaliseerde toast-laag met maximaal drie meldingen; succes en informatie verdwijnen automatisch na vier seconden, terwijl foutmeldingen zichtbaar blijven tot de gebruiker ze sluit.
+* **In-app feedback**: Destructieve acties gebruiken een toegankelijke bevestigingsmodal met focus-trap, Escape-sluiten en focusherstel. Actie-uitkomsten gebruiken een globale, gelokaliseerde toast-laag met maximaal drie meldingen; succes en informatie verdwijnen automatisch na vier seconden (gepauzeerd zolang de muis erboven hangt of de melding focus heeft), terwijl foutmeldingen zichtbaar blijven tot de gebruiker ze sluit.
+* **Responsive layout**: De planner kent drie layout-tiers via `useLayoutTier()`: *compact* (< 768px, paneel als uitklapbare bottom sheet en compacte header), *medium* (768–1199px, begrensde zijbalk en toolbar met alleen iconen) en *wide* (≥ 1200px). Op touch-apparaten zijn alle bedieningselementen minimaal 44×44px. Zie [Responsive Planner Testen](./responsive-planner-testing.md).
 
 ### 3.2 Backend & API
 * **Runtime**: **Cloudflare Workers** (draait op de V8 Edge-runtime met wereldwijde dekking en 0 ms opstarttijd).
@@ -226,6 +227,7 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
    * Desktop tests: Uploaden van een GPX, route bewerken, POI filters toggelen.
    * Mobile tests: Emulatie van iPhone en Android schermen; controleren of de Companion modus optimaal functioneert.
    * Offline simulatie: Verbinding uitschakelen in Playwright en controleren of de kaart en route blijven werken.
+   * Responsive planner-suite: alle plannerfuncties op vier apparaatcategorieën (mobile 360×800, tablet 820×1180, laptop 1366×768, desktop 1920×1080) met layout-assertions en documentatiescreenshots per categorie. Zie [Responsive Planner Testen](./responsive-planner-testing.md).
 
 ---
 
@@ -250,4 +252,5 @@ docker compose up -d
 # 3. Tests draaien
 npm run test:unit       # Draait de Vitest unit tests
 npm run test:e2e        # Draait de Playwright E2E tests
+npm run test:e2e:planner # Draait de responsive planner-suite (4 categorieën + screenshots)
 ```

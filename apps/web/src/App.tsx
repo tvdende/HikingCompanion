@@ -52,7 +52,8 @@ import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
 import { useFeedback } from './context/FeedbackContext';
-import { Download, Plus } from 'lucide-react';
+import { useLayoutTier } from './hooks/useLayoutTier';
+import { ChevronDown, ChevronUp, Download, Plus } from 'lucide-react';
 
 interface HistorySnapshot {
   waypoints: RouteWaypoint[];
@@ -135,6 +136,11 @@ export const App: React.FC = () => {
     return 390;
   });
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const layoutTier = useLayoutTier();
+  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  // On medium screens the stored width is clamped visually without overwriting the stored value.
+  const sidebarWidthCss =
+    layoutTier === 'medium' ? `max(320px, min(${sidebarWidth}px, 45vw))` : `${sidebarWidth}px`;
 
   const handleAnalyzeSurface = async () => {
     if (!currentRoute) return;
@@ -1110,7 +1116,12 @@ export const App: React.FC = () => {
             onChange={handleFileInputChange}
           />
 
-          <main className="main-viewport">
+          <main
+            className="main-viewport"
+            data-layout-tier={layoutTier}
+            data-planner-sheet={mode === 'planner' && layoutTier === 'compact' ? (isSheetExpanded ? 'expanded' : 'collapsed') : undefined}
+            style={{ '--planner-sidebar-width': mode === 'planner' ? sidebarWidthCss : '0px' } as React.CSSProperties}
+          >
             {/* Interactive Route Editor Toolbar (Planner Mode) */}
             {mode === 'planner' && (
               <RouteEditorToolbar
@@ -1131,7 +1142,7 @@ export const App: React.FC = () => {
                 hasRoute={Boolean(currentRoute && currentRoute.stages.length > 0)}
                 waypointCount={waypoints.length}
                 isCalculating={isCalculating}
-                sidebarWidth={sidebarWidth}
+                layoutTier={layoutTier}
               />
             )}
 
@@ -1169,8 +1180,24 @@ export const App: React.FC = () => {
                 id="planner-panel"
                 className="planner-sidebar"
                 aria-label={t('planner.sidebarTitle')}
-                style={{ width: `${sidebarWidth}px` }}
+                style={{ width: sidebarWidthCss }}
               >
+                {layoutTier === 'compact' && (
+                  <button
+                    id="planner-sheet-toggle"
+                    type="button"
+                    className="planner-sheet-toggle"
+                    onClick={() => setIsSheetExpanded((prev) => !prev)}
+                    aria-expanded={isSheetExpanded}
+                    aria-controls="planner-panel"
+                    aria-label={isSheetExpanded ? t('planner.sheetCollapse') : t('planner.sheetExpand')}
+                    title={isSheetExpanded ? t('planner.sheetCollapse') : t('planner.sheetExpand')}
+                  >
+                    <span className="planner-sheet-grip" aria-hidden="true" />
+                    {isSheetExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </button>
+                )}
+
                 {/* Drag-to-resize handle */}
                 <div
                   className={`sidebar-resizer ${isResizingSidebar ? 'is-resizing' : ''}`}

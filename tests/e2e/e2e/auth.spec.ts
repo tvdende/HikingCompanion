@@ -78,7 +78,12 @@ test.describe('Authentication & User Session Flow', () => {
     const profileTrigger = page.locator('#user-profile-trigger');
     await expect(profileTrigger).toBeVisible();
     await expect(page.locator('#header-user-name')).toHaveText('Jan Wandelaar');
-    await expect(profileTrigger.locator('.role-tag.user')).toBeVisible();
+    // Compact screens (< 768px) hide the name and role badge in the trigger to save space.
+    if ((page.viewportSize()?.width ?? 1280) >= 768) {
+      await expect(profileTrigger.locator('.role-tag.user')).toBeVisible();
+    } else {
+      await expect(profileTrigger.locator('.role-tag.user')).toHaveCount(1);
+    }
     await expect(page.locator('#btn-open-login')).not.toBeVisible();
 
     // Map and planner panel are now mounted

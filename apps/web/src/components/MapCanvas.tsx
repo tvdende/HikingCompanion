@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { HikeRoute, Coordinate, RouteWaypoint, RouteStageDefinition } from '@hiking-companion/core';
 import { useTranslation } from '../i18n';
 import { useFeedback } from '../context/FeedbackContext';
+import { effectiveSidebarWidth, getLayoutTier } from '../hooks/useLayoutTier';
 
 export const STAGE_PALETTE = [
   '#24583d', // Forest Green
@@ -139,8 +140,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       return;
     }
 
-    const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
-    const currentSidebarWidth = sidebarWidthRef.current || 390;
+    const tier = getLayoutTier();
+    const currentSidebarWidth = effectiveSidebarWidth(sidebarWidthRef.current || 390, tier);
+    const sheetHeight = tier === 'compact' ? Math.round(window.innerHeight * 0.4) : 0;
     map.fitBounds(
       [
         [minLng, minLat],
@@ -149,8 +151,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       {
         padding: {
           top: 80,
-          bottom: 80,
-          left: isDesktop ? currentSidebarWidth + 30 : 40,
+          bottom: tier === 'compact' ? sheetHeight + 40 : 80,
+          left: tier === 'compact' ? 40 : currentSidebarWidth + 30,
           right: 50,
         },
         maxZoom: 15,
@@ -582,6 +584,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       markerEl.addEventListener('click', (e) => {
         e.stopPropagation();
         isMarkerInteractingRef.current = true;
+        // Propagation is stopped so the map does not add a waypoint, which also stops MapLibre's own popup toggle.
+        marker.togglePopup();
+        setTimeout(() => {
+          isMarkerInteractingRef.current = false;
+        }, 150);
       });
 
       const marker = new maplibregl.Marker({
@@ -792,9 +799,13 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
     if (map.isStyleLoaded()) {
       applyRoute();
-    } else {
-      map.once('load', applyRoute);
+      return;
     }
+    // isStyleLoaded() is also false while GeoJSON sources update; 'load' has fired by then, so wait for 'idle'.
+    map.once('idle', applyRoute);
+    return () => {
+      map.off('idle', applyRoute);
+    };
   }, [
     route,
     activeStageId,
