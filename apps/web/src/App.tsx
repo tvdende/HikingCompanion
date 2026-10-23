@@ -78,6 +78,7 @@ export const App: React.FC = () => {
   const [segments, setSegments] = useState<RouteSegment[]>([]);
   const segmentsRef = useRef<RouteSegment[]>([]);
   segmentsRef.current = segments;
+  const committedSegmentsRef = useRef<RouteSegment[]>([]);
   const activeAbortControllerRef = useRef<AbortController | null>(null);
   const [history, setHistory] = useState<HistorySnapshot[]>([
     {
@@ -297,12 +298,14 @@ export const App: React.FC = () => {
     const updateRoute = async () => {
       if (waypoints.length === 0) {
         setSegments([]);
+        committedSegmentsRef.current = [];
         setCurrentRoute(null);
         return;
       }
 
       if (waypoints.length === 1) {
         setSegments([]);
+        committedSegmentsRef.current = [];
         const singlePt = waypoints[0].coordinate;
         const targetStageId = waypoints[0].stageId || stages[0]?.id || 'stage-1';
 
@@ -332,9 +335,12 @@ export const App: React.FC = () => {
         return;
       }
 
-      // 1. Create target waypoint pairs and diff against existing segments
+      // 1. Create target waypoint pairs and diff against existing committed segments
       const targetPairs = createWaypointPairs(waypoints, routingMode);
-      const { retainedSegments, dirtyPairs } = diffRouteSegments(segmentsRef.current, targetPairs);
+      const { retainedSegments, dirtyPairs } = diffRouteSegments(
+        committedSegmentsRef.current,
+        targetPairs
+      );
 
       const resolvedSegments: RouteSegment[] = new Array(targetPairs.length);
       retainedSegments.forEach((seg, idx) => {
@@ -393,6 +399,7 @@ export const App: React.FC = () => {
 
       // 3. If all segments are retained or resolved from cache, update immediately (0ms delay)
       if (needsFetch.length === 0) {
+        committedSegmentsRef.current = resolvedSegments;
         setSegments(resolvedSegments);
         applyRouteState(resolvedSegments);
         setIsCalculating(false);
@@ -426,6 +433,7 @@ export const App: React.FC = () => {
         const fetchPromises = needsFetch.map(async (pair) => {
           let segmentCoords: Coordinate[] = [];
           let segmentDistMeters = 0;
+          let isFallback = false;
 
           try {
             const res = await fetch('/api/routing/route', {
@@ -442,7 +450,7 @@ export const App: React.FC = () => {
 
             if (res.ok) {
               const data = await res.json();
-              if (data.coordinates && data.coordinates.length > 0) {
+              if (data.coordinates && data.coordinates.length > 0 && !data.isFallback) {
                 segmentCoords = data.coordinates.map((item: any) => {
                   if (Array.isArray(item)) {
                     return { lng: item[0], lat: item[1] };
@@ -453,11 +461,13 @@ export const App: React.FC = () => {
                   data.distanceMeters ||
                   calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
               } else {
+                isFallback = true;
                 segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
                 segmentDistMeters =
                   calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
               }
             } else {
+              isFallback = true;
               segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
               segmentDistMeters =
                 calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
@@ -466,7 +476,7 @@ export const App: React.FC = () => {
             if (err?.name === 'AbortError') {
               throw err;
             }
-            // Graceful fallback to straight line for this single segment
+            isFallback = true;
             segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
             segmentDistMeters =
               calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
@@ -474,13 +484,15 @@ export const App: React.FC = () => {
 
           const segMetrics = calculateRouteMetrics(segmentCoords);
 
-          // Populate cache
-          globalSegmentCache.set(pair.from.coordinate, pair.to.coordinate, pair.routingMode, {
-            coordinates: segmentCoords,
-            distanceMeters: segmentDistMeters,
-            elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
-            elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
-          });
+          // Only cache in globalSegmentCache if trail snapping succeeded or routingMode is 'direct'
+          if (!isFallback || pair.routingMode === 'direct') {
+            globalSegmentCache.set(pair.from.coordinate, pair.to.coordinate, pair.routingMode, {
+              coordinates: segmentCoords,
+              distanceMeters: segmentDistMeters,
+              elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
+              elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
+            });
+          }
 
           const seg: RouteSegment = {
             id: `seg-${pair.from.id}-${pair.to.id}`,
@@ -504,6 +516,7 @@ export const App: React.FC = () => {
           resolvedSegments[item.index] = item.segment;
         }
 
+        committedSegmentsRef.current = resolvedSegments;
         setSegments(resolvedSegments);
         applyRouteState(resolvedSegments);
       } catch (err: any) {
@@ -599,6 +612,9 @@ export const App: React.FC = () => {
       transportType: 'foot',
     };
     setWaypoints([]);
+    setSegments([]);
+    committedSegmentsRef.current = [];
+    globalSegmentCache.clear();
     setStages([freshStage]);
     setActiveStageId('stage-1');
     setHistory([{ waypoints: [], stages: [freshStage], activeStageId: 'stage-1' }]);

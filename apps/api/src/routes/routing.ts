@@ -92,6 +92,7 @@ routingRoutes.post('/route', async (c) => {
       signal: controller.signal,
       headers: {
         'User-Agent': 'HikingCompanion/0.1.0',
+        'Referer': 'https://brouter.de/brouter-web/',
       },
     });
     clearTimeout(timeoutId);
