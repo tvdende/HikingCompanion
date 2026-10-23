@@ -1,3 +1,5 @@
+# planner-responsive-layout Specification
+
 ## Purpose
 
 Guarantees that every planner capability is visible and usable on the four
@@ -5,7 +7,7 @@ supported device categories, and that this is continuously verified with a
 dedicated end-to-end suite that also produces per-category screenshots for
 manual review.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Supported planner device categories
 The system SHALL support the planner on four device categories, each defined by a representative, commonly used viewport:
@@ -69,11 +71,11 @@ The project SHALL provide an end-to-end suite that runs only on the four support
 - **THEN** the responsive planner suite is not included in them
 
 ### Requirement: Per-category planner flow screenshots
-The responsive verification suite SHALL capture full-page screenshots at defined steps of the planner flow, and SHALL store them in a separate folder per device category with ordered, descriptive file names. Screenshots are documentation for manual review. They SHALL NOT cause a test to fail and SHALL NOT be compared with baseline images.
+The responsive verification suite SHALL capture viewport screenshots at defined steps of the planner flow, and SHALL store them in a separate folder per device category with ordered, descriptive file names. Screenshots are documentation for manual review. They SHALL NOT cause a test to fail and SHALL NOT be compared with baseline images.
 
 #### Scenario: Screenshots are grouped by category
 - **WHEN** the responsive planner suite completes
-- **THEN** the screenshot output contains `mobile`, `tablet`, `laptop`, and `desktop` folders, each with the same ordered set of step screenshots such as `01-planner-empty.png` and `02-route-drawn.png`
+- **THEN** the screenshot output contains `mobile`, `tablet`, `laptop`, and `desktop` folders, each with the same ordered set of step screenshots such as `01-planner-empty.png` and `02-editing-toolbar.png`
 
 #### Scenario: Screenshot changes do not fail a test
 - **WHEN** the planner behaves correctly but a screenshot differs from a previous run
