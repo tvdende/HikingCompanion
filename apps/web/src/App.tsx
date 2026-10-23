@@ -51,6 +51,7 @@ import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
+import { useFeedback } from './context/FeedbackContext';
 import { Download, Plus } from 'lucide-react';
 
 interface HistorySnapshot {
@@ -62,6 +63,7 @@ interface HistorySnapshot {
 export const App: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t, formatPriceEur } = useTranslation();
+  const feedback = useFeedback();
   const [mode, setMode] = useState<AppMode>('planner');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -662,8 +664,9 @@ export const App: React.FC = () => {
     try {
       const result = splitRouteAtWaypoint(stages, waypoints, waypointId);
       applyStateUpdate(result.waypoints, result.stages, result.newStageId);
-    } catch (err: any) {
-      alert(err.message || t('stages.splitError'));
+      feedback.success(t('feedback.stageSplit'));
+    } catch (err: unknown) {
+      feedback.error(err instanceof Error ? err.message : t('stages.splitError'));
     }
   };
 
@@ -671,8 +674,9 @@ export const App: React.FC = () => {
     try {
       const result = mergeStages(stages, waypoints, stageId);
       applyStateUpdate(result.waypoints, result.stages, result.activeStageId);
-    } catch (err: any) {
-      alert(err.message || t('stages.mergeError'));
+      feedback.success(t('feedback.stageMerged'));
+    } catch (err: unknown) {
+      feedback.error(err instanceof Error ? err.message : t('stages.mergeError'));
     }
   };
 
@@ -765,6 +769,7 @@ export const App: React.FC = () => {
           }
         : null
     );
+    feedback.success(t(isExisting ? 'feedback.routeUpdated' : 'feedback.routeSaved', { title: saveData.title }));
   };
 
   const handleLoadSavedRoute = async (routeId: string) => {
@@ -1067,9 +1072,10 @@ export const App: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      feedback.success(t('feedback.exportStarted', { title: currentRoute.title }));
     } catch (err) {
       console.error('Failed to export GPX:', err);
-      alert(t('planner.errorGpxExport'));
+      feedback.error(t('planner.errorGpxExport'));
     }
   };
 
@@ -1435,6 +1441,9 @@ export const App: React.FC = () => {
         route={currentRoute}
         onSaveSuccess={(updated) => {
           setCurrentRoute((prev) => (prev ? { ...prev, ...updated } : null));
+          if (updated.title) {
+            feedback.success(t('feedback.routeUpdated', { title: updated.title }));
+          }
         }}
       />
 

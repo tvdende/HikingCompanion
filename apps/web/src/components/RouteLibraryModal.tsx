@@ -3,10 +3,12 @@ import type { RouteStatus, HikeRoute } from '@hiking-companion/core';
 import { serializeToGpx } from '@hiking-companion/core';
 import { useTranslation } from '../i18n';
 import { RouteMetadataModal } from './RouteMetadataModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Map, Edit3, Trash2, Loader2, Download, Search, RefreshCw, Layers } from 'lucide-react';
+import { useFeedback } from '../context/FeedbackContext';
 
 export interface SavedRouteListItem {
   id: string;
@@ -35,6 +37,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
   currentRouteId,
 }) => {
   const { t, locale, formatDistance, formatPriceEur } = useTranslation();
+  const feedback = useFeedback();
   const [routes, setRoutes] = useState<SavedRouteListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +51,10 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
 
   // Editing Metadata Modal State
   const [editingRoute, setEditingRoute] = useState<SavedRouteListItem | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    route: SavedRouteListItem;
+    trigger: HTMLElement;
+  } | null>(null);
 
   const fetchRoutes = async () => {
     try {
@@ -81,12 +88,14 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleDelete = async (routeId: string, routeTitle: string) => {
-    const confirmed = window.confirm(
-      t('libraryModal.deleteConfirm', { title: routeTitle })
-    );
-    if (!confirmed) return;
+  const handleDelete = (route: SavedRouteListItem, trigger: HTMLElement) => {
+    setPendingDelete({ route, trigger });
+  };
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { route } = pendingDelete;
+    const { id: routeId, title: routeTitle } = route;
     try {
       setDeletingId(routeId);
       const res = await fetch(`/api/routes/${routeId}`, {
@@ -100,8 +109,9 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       }
 
       setRoutes((prev) => prev.filter((r) => r.id !== routeId));
-    } catch (err: any) {
-      alert(err.message || t('libraryModal.deleteError'));
+      feedback.success(t('feedback.routeDeleted', { title: routeTitle }));
+    } catch (err: unknown) {
+      throw new Error(err instanceof Error ? err.message : t('libraryModal.deleteError'));
     } finally {
       setDeletingId(null);
     }
@@ -111,9 +121,13 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
     try {
       setLoadingRouteId(routeId);
       await onSelectRoute(routeId);
+      const route = routes.find((item) => item.id === routeId);
+      if (route) {
+        feedback.success(t('feedback.routeLoaded', { title: route.title }));
+      }
       onClose();
-    } catch (err: any) {
-      alert(err.message || t('libraryModal.loadError'));
+    } catch (err: unknown) {
+      feedback.error(err instanceof Error ? err.message : t('libraryModal.loadError'));
     } finally {
       setLoadingRouteId(null);
     }
@@ -143,9 +157,10 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
+      feedback.success(t('feedback.routeExported', { title: routeTitle }));
+    } catch (err: unknown) {
       console.error('Failed to export GPX:', err);
-      alert(err.message || t('libraryModal.exportError'));
+      feedback.error(err instanceof Error ? err.message : t('libraryModal.exportError'));
     } finally {
       setExportingId(null);
     }
@@ -451,7 +466,7 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
                               variant="danger"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handleDelete(r.id, r.title)}
+                              onClick={(event) => handleDelete(r, event.currentTarget)}
                               disabled={deletingId === r.id}
                               title={t('libraryModal.tooltipDelete')}
                               aria-label={t('libraryModal.ariaDelete', { title: r.title })}
@@ -495,6 +510,14 @@ export const RouteLibraryModal: React.FC<RouteLibraryModalProps> = ({
           onSaveSuccess={handleMetadataSaved}
         />
       )}
+      <ConfirmationModal
+        isOpen={pendingDelete !== null}
+        title={t('common.delete')}
+        description={pendingDelete ? t('libraryModal.deleteConfirm', { title: pendingDelete.route.title }) : ''}
+        onConfirm={confirmDelete}
+        onClose={() => setPendingDelete(null)}
+        triggerElement={pendingDelete?.trigger}
+      />
     </>
   );
 };

@@ -54,6 +54,7 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
 * **PWA & Offline**: `vite-plugin-pwa` (aangedreven door Google Workbox) voor het offline cachen van de app-shell en kaarttegels.
 * **Kaartmotor**: **MapLibre GL JS** (open-source vector engine onder de Linux Foundation, ondersteund door AWS, Meta en Microsoft).
 * **Internationalisatie (i18n)**: Native, type-safe meertaligheid (Nederlands standaard, Engels ondersteund). Persistente taalvoorkeur in LocalStorage en automatische formatting van afstanden (km), valuta (€) en datums.
+* **In-app feedback**: Destructieve acties gebruiken een toegankelijke bevestigingsmodal met focus-trap, Escape-sluiten en focusherstel. Actie-uitkomsten gebruiken een globale, gelokaliseerde toast-laag met maximaal drie meldingen; succes en informatie verdwijnen automatisch na vier seconden, terwijl foutmeldingen zichtbaar blijven tot de gebruiker ze sluit.
 
 ### 3.2 Backend & API
 * **Runtime**: **Cloudflare Workers** (draait op de V8 Edge-runtime met wereldwijde dekking en 0 ms opstarttijd).

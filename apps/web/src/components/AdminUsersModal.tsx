@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { ConfirmationModal } from './ConfirmationModal';
+import { useFeedback } from '../context/FeedbackContext';
 
 interface AdminUsersModalProps {
   isOpen: boolean;
@@ -13,10 +15,16 @@ interface AdminUsersModalProps {
 export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClose }) => {
   const { user: currentAdmin } = useAuth();
   const { t } = useTranslation();
+  const feedback = useFeedback();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+    trigger: HTMLElement;
+  } | null>(null);
 
   const fetchUsers = useCallback(async (query: string = '') => {
     setIsLoading(true);
@@ -93,10 +101,13 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!window.confirm(t('adminModal.deleteConfirm', { name: userName }))) {
-      return;
-    }
+  const handleDeleteUser = (userId: string, userName: string, trigger: HTMLElement) => {
+    setPendingDelete({ id: userId, name: userName, trigger });
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!pendingDelete) return;
+    const { id: userId, name: userName } = pendingDelete;
     setActionError(null);
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -105,24 +116,26 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
       });
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u.id !== userId));
+        feedback.success(t('feedback.userDeleted', { name: userName }));
       } else {
         const err = (await res.json()) as any;
-        setActionError(err.error || t('adminModal.deleteUserError'));
+        throw new Error(err.error || t('adminModal.deleteUserError'));
       }
-    } catch {
-      setActionError(t('common.networkError'));
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : t('common.networkError'));
     }
   };
 
   return (
-    <div
-      id="admin-modal-backdrop"
-      className="modal-backdrop"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="admin-modal-title"
-    >
+    <>
+      <div
+        id="admin-modal-backdrop"
+        className="modal-backdrop"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-modal-title"
+      >
       <div
         id="admin-users-modal"
         className="modal-card admin-modal-card"
@@ -245,7 +258,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
                             id={`delete-btn-${u.id}`}
                             type="button"
                             className="delete-user-btn"
-                            onClick={() => handleDeleteUser(u.id, u.name)}
+                            onClick={(event) => handleDeleteUser(u.id, u.name, event.currentTarget)}
                             title={t('adminModal.tooltipDelete')}
                           >
                             🗑️
@@ -260,6 +273,15 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ isOpen, onClos
           )}
         </div>
       </div>
-    </div>
+      </div>
+      <ConfirmationModal
+        isOpen={pendingDelete !== null}
+        title={t('common.delete')}
+        description={pendingDelete ? t('adminModal.deleteConfirm', { name: pendingDelete.name }) : ''}
+        onConfirm={confirmDeleteUser}
+        onClose={() => setPendingDelete(null)}
+        triggerElement={pendingDelete?.trigger}
+      />
+    </>
   );
 };

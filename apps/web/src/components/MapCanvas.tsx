@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { HikeRoute, Coordinate, RouteWaypoint, RouteStageDefinition } from '@hiking-companion/core';
 import { useTranslation } from '../i18n';
+import { useFeedback } from '../context/FeedbackContext';
 
 export const STAGE_PALETTE = [
   '#24583d', // Forest Green
@@ -52,6 +53,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   onLocationFound,
 }) => {
   const { t } = useTranslation();
+  const feedback = useFeedback();
   const sidebarWidthRef = useRef(sidebarWidth);
   sidebarWidthRef.current = sidebarWidth;
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -807,7 +809,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      alert(t('map.geoNotSupported'));
+      feedback.info(t('map.geoNotSupported'));
       return;
     }
 
