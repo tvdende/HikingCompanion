@@ -5,15 +5,21 @@ Long-distance hikers and trail planners need to know what terrain they will enco
 ## What Changes
 
 - **OSM Surface Tag Classifier**: Implement domain logic in `packages/core` that maps OpenStreetMap tags (`surface`, `tracktype`, `highway`) to standard categories: `unpaved` (natural, dirt, earth, grass, sand, forest paths), `gravel` (gravel, fine_gravel, compacted, tracktype grade2), `paved` (asphalt, concrete, paving_stones, tarmac), and `unknown`.
-- **Corridor Surface Analysis Service**: Add a Cloudflare Worker service endpoint `POST /api/routes/surface-analysis` that accepts route coordinates, retrieves way surface attributes from OSM/Overpass (with spatial caching), and segments the route into categorized intervals.
-- **Surface Breakdown Computation**: Calculate exact distance in meters/kilometers and percentage share for each surface category across the entire hike route.
-- **Visual Surface Breakdown Component**: Add a `SurfaceBreakdownCard.tsx` component in `apps/web` featuring a segmented progress bar (green for unpaved, amber for gravel, slate for paved) and a metric list displaying kilometers and percentages.
-- **Integration with Planner & Active Route**: Automatically trigger surface analysis when a route is imported via GPX or designed in the planner, updating the sidebar stats in real time.
+- **Dual Source Surface Data Engine**:
+  - *Direct BRouter Tag Extraction (0ms latency)*: Extract OSM `surface`, `highway`, and `tracktype` tags directly from BRouter response messages (`properties.messages`) during route calculation, avoiding redundant network round-trips for planned routes.
+  - *Corridor Surface Analysis Service*: Provide a Cloudflare Worker endpoint `POST /api/routes/surface-analysis` using Overpass API spatial corridor queries and coordinate downsampling for imported GPX tracks or custom tracks that lack routing metadata.
+- **Enhanced Surface Breakdown & Segment Model**:
+  - Extend `SurfaceBreakdown` with `unknownPercentage` (ensuring 100% strict mathematical summation) and `segments: SurfaceSegment[]` storing categorized polyline geometries with distance metrics.
+- **Visual Surface Breakdown Component & Interactive Map Toggle**:
+  - Add `SurfaceBreakdownCard.tsx` in `apps/web` with a segmented progress bar (green for unpaved, amber for gravel, slate for paved), kilometer totals, percentage badges, and an on-demand "Analyseer ondergrond" trigger.
+  - Add an interactive visual toggle ("Toon ondergrond op kaart" / "Toon etappes") allowing users to view multi-colored trail lines on `MapCanvas.tsx` without losing stage or transit route context.
+- **D1 Database Persistence**:
+  - Add `surfaceBreakdownJson` column to the `routes` table in D1 so surface metrics and colored segment polylines are permanently saved and loaded instantly without external re-analysis.
 
 ## Capabilities
 
 ### New Capabilities
-- `surface-analysis`: Classifies OpenStreetMap surface and highway tags, computes route terrain breakdowns into unpaved, gravel, and paved segments, and presents a visual surface breakdown summary.
+- `surface-analysis`: Classifies OpenStreetMap surface and highway tags, computes route terrain breakdowns into unpaved, gravel, paved, and unknown segments, persists them to Cloudflare D1, and presents a visual surface breakdown summary with an interactive map coloring toggle.
 
 ### Modified Capabilities
 *(None)*
@@ -21,8 +27,9 @@ Long-distance hikers and trail planners need to know what terrain they will enco
 ## Impact
 
 - **Affected Code**:
-  - `packages/core`: Implement `classifySurface()`, `calculateSurfaceBreakdown()`, and geometry matching utilities.
-  - `apps/api`: Add `POST /api/routes/surface-analysis` endpoint with OSM corridor lookup and in-memory/D1 caching.
-  - `apps/web`: Add `SurfaceBreakdownCard.tsx`, integrate into `App.tsx` and the planner sidebar, and add surface breakdown display styles.
-- **External Dependencies**: Uses OpenStreetMap Overpass API or routing service tag annotations for corridor queries.
-- **Performance**: Analysis is executed asynchronously with debouncing and spatial bounding box queries to avoid UI freezing on long GPX tracks.
+  - `packages/core`: Add `SurfaceSegment` interface, `unknownPercentage` to `SurfaceBreakdown`, implement `classifySurface()` and `calculateSurfaceBreakdown()`, and parse BRouter message tags.
+  - `apps/api`: Add `POST /api/routes/surface-analysis` endpoint with corridor lookup, and update D1 schema with `surfaceBreakdownJson` in `apps/api/src/db/schema.ts` and `routes.ts`.
+  - `apps/web`: Add `SurfaceBreakdownCard.tsx`, integrate layer toggle into `MapCanvas.tsx`, and connect to `App.tsx` state and route saving pipeline.
+  - `docs`: Update `docs/product-vision-and-techstack.md` and `docs/route-stages-and-transit.md`.
+- **External Dependencies**: BRouter GeoJSON messages and OpenStreetMap Overpass API for corridor queries.
+- **Performance**: Instant 0ms analysis for planned routes via BRouter tags; downsampled spatial corridor queries with caching for GPX imports.
