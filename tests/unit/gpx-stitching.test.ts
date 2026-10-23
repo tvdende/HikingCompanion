@@ -127,4 +127,43 @@ describe('GPX Track Stitching Domain Utility', () => {
     const stitched = stitchGpxRoutes([def1, def2]);
     expect(stitched.status).toBe('definitive');
   });
+
+  describe('singleStage option', () => {
+    it('emits one stage with all coordinates in input order', () => {
+      const stitched = stitchGpxRoutes([route2, route1], { singleStage: true });
+      expect(stitched.stages).toHaveLength(1);
+      const [stage] = stitched.stages;
+      expect(stage.stageNumber).toBe(1);
+      expect(stage.title).toBe('Veluwe Dag 2 & Veluwe Dag 1');
+      expect(stage.coordinates[0]).toEqual(route2.stages[0].coordinates[0]);
+      expect(stage.coordinates[stage.coordinates.length - 1]).toEqual(
+        route1.stages[0].coordinates[route1.stages[0].coordinates.length - 1],
+      );
+      const split = stitchGpxRoutes([route2, route1]);
+      expect(stage.coordinates).toEqual(split.stages.flatMap((s) => s.coordinates));
+    });
+
+    it('includes gap bridges and recalculates metrics', () => {
+      const split = stitchGpxRoutes([route2, routeWithGap]);
+      const merged = stitchGpxRoutes([route2, routeWithGap], { singleStage: true });
+      expect(merged.stages).toHaveLength(1);
+      expect(merged.stages[0].coordinates).toHaveLength(
+        split.stages.reduce((n, s) => n + s.coordinates.length, 0),
+      );
+      expect(merged.stages[0].distanceKm).toBe(merged.totalDistanceKm);
+      expect(merged.totalDistanceKm).toBeCloseTo(split.totalDistanceKm, 1);
+      expect(merged.elevationMetrics).toEqual(split.elevationMetrics);
+    });
+
+    it('collapses a single multi-stage route into one stage', () => {
+      const multi: HikeRoute = { ...route1, stages: [...route1.stages, ...route2.stages] };
+      expect(stitchGpxRoutes([multi]).stages).toHaveLength(2);
+      expect(stitchGpxRoutes([multi], { singleStage: true }).stages).toHaveLength(1);
+    });
+
+    it('keeps a single-stage route unchanged', () => {
+      const stitched = stitchGpxRoutes([route1], { singleStage: true });
+      expect(stitched.stages).toEqual(route1.stages);
+    });
+  });
 });

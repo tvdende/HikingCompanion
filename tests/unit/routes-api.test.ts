@@ -270,8 +270,29 @@ describe('Routes API Endpoints (/api/routes)', () => {
       body: JSON.stringify({ coordinates: [{ lat: 52, lng: 5 }, { lat: 52.02, lng: 5.02 }] }),
     }, { DB: testEnv.d1 });
     const geometryData = await geometryRes.json() as any;
-    expect(['complete', 'unavailable']).toContain(geometryData.route.surfaceBreakdown.status);
-    expect(geometryData.route.surfaceBreakdown.totalMeters).toBeGreaterThan(0);
+    expect(geometryData.route.surfaceBreakdown).toBeNull();
+  });
+
+  it('saves a route without surface analysis immediately, without external requests', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockClear();
+
+    const createRes = await app.request('/api/routes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: `hiking_session=${userToken}` },
+      body: JSON.stringify({
+        title: 'Route without surface',
+        coordinates: [{ lat: 52, lng: 5 }, { lat: 52.01, lng: 5.01 }],
+        stages: [
+          { id: 's1', stageNumber: 1, title: 'E1', distanceKm: 1, coordinates: [{ lat: 52, lng: 5 }, { lat: 52.01, lng: 5.01 }] },
+          { id: 's2', stageNumber: 2, title: 'E2', distanceKm: 0 },
+        ],
+      }),
+    }, { DB: testEnv.d1 });
+
+    expect(createRes.status).toBe(201);
+    expect((await createRes.json() as any).route.surfaceBreakdown).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('supports status and search filtering, and partial metadata updates', async () => {

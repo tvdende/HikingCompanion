@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { eq, and, or, like, desc } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { routes, type RouteStatus } from '../db/schema.js';
-import { analyzeRouteSurface } from './surface.js';
 import type { Env } from '../index.js';
 import type {
   Coordinate,
@@ -145,12 +144,7 @@ routesApi.post('/', async (c) => {
     typeof body.priceEur === 'number' && !isNaN(body.priceEur) && body.priceEur >= 0
       ? Number(body.priceEur.toFixed(2))
       : 0;
-  const routeStages = body.stages && body.stages.length > 0
-    ? body.stages
-    : coordinates.length > 1
-      ? [{ id: 'stage-1', stageNumber: 1, title: 'Route', distanceKm: totalDistanceKm, coordinates }]
-      : [];
-  const surfaceBreakdown = body.surfaceBreakdown ?? await analyzeRouteSurface(routeStages);
+  const surfaceBreakdown = body.surfaceBreakdown ?? null;
 
   await db.insert(routes).values({
     id: routeId,
@@ -327,16 +321,8 @@ routesApi.put('/:id', async (c) => {
     updateValues.elevationMetricsJson = JSON.stringify(body.elevationMetrics);
   }
   if (hasGeometryUpdate) {
-    const updatedCoordinates = body.coordinates && body.coordinates.length > 0
-      ? body.coordinates
-      : (body.stages || []).flatMap((stage) => stage.coordinates || []);
-    const updatedStages = body.stages && body.stages.length > 0
-      ? body.stages
-      : updatedCoordinates.length > 1
-        ? [{ id: 'stage-1', stageNumber: 1, title: 'Route', distanceKm: body.totalDistanceKm || 0, coordinates: updatedCoordinates }]
-        : [];
-    const surfaceBreakdown = body.surfaceBreakdown ?? await analyzeRouteSurface(updatedStages);
-    updateValues.surfaceBreakdownJson = surfaceBreakdown ? JSON.stringify(surfaceBreakdown) : null;
+    // Saving never waits for an external surface analysis: changed geometry invalidates a stale result.
+    updateValues.surfaceBreakdownJson = body.surfaceBreakdown ? JSON.stringify(body.surfaceBreakdown) : null;
   } else if (body.surfaceBreakdown) {
     updateValues.surfaceBreakdownJson = JSON.stringify(body.surfaceBreakdown);
   }

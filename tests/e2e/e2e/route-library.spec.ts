@@ -257,6 +257,12 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
       { name: 'etappe-zuid.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(gpx2) },
     ]);
 
+    // Files are listed in natural filename order before choosing an import option
+    await expect(page.locator('#gpx-file-order-list .gpx-file-name')).toHaveText([
+      'etappe-noord.gpx',
+      'etappe-zuid.gpx',
+    ]);
+
     // Choose to import each file as a separate stage in multi-file modal
     const separateBtn = page.locator('#btn-choice-separate-stages');
     await expect(separateBtn).toBeVisible({ timeout: 10000 });
