@@ -9,7 +9,7 @@ The system SHALL only recompute route segments whose adjacent waypoints or routi
 - **AND** all preexisting segments retain their existing coordinates and distances without network calls
 
 #### Scenario: Inserting an intermediate waypoint only calculates adjacent segments
-- **WHEN** the user inserts a waypoint between two existing waypoints
+- **WHEN** the user inserts a waypoint between two existing waypoints via a split handle
 - **THEN** the system replaces the single split segment with two new segments connecting to the inserted waypoint
 - **AND** all other segments before and after the split remain unchanged without recalculation
 
@@ -23,12 +23,29 @@ The system SHALL only recompute route segments whose adjacent waypoints or routi
 - **THEN** the system calculates only the single bridging segment between the preceding and succeeding waypoints
 - **AND** all other segments remain untouched
 
+### Requirement: Optimistic UI Preview and Segment-Level Graceful Fallback
+The system SHALL provide immediate visual feedback upon waypoint creation and isolate network or routing failures to individual affected segments.
+
+#### Scenario: Instant optimistic connector line on waypoint placement
+- **WHEN** the user places a new waypoint on the map canvas
+- **THEN** the system immediately draws a transient straight or dotted connector line to the preceding waypoint (0ms latency)
+- **AND** replaces the transient line with the snapped trail polyline once routing calculation resolves
+
+#### Scenario: Single segment failure falls back to straight line gracefully
+- **WHEN** the external routing service fails, times out, or cannot find a walkable path for a specific segment
+- **THEN** only that specific segment falls back to a geodesic straight line with a non-blocking indicator
+- **AND** all other intact segments retain their trail-snapped paths and accurate distances
+
 ### Requirement: Client-Side Routing Cache and Concurrent Execution
 The system SHALL maintain a client-side in-memory segment cache keyed by segment coordinates and routing mode, SHALL execute concurrent requests when multiple segments require resolution, and SHALL cancel obsolete in-flight calculations when newer edits occur.
 
 #### Scenario: Cache hit on undo or redo
 - **WHEN** the user performs an Undo or Redo operation that restores a previously calculated waypoint pair
 - **THEN** the system resolves the segment immediately from the in-memory cache with zero network requests
+
+#### Scenario: Bidirectional segment cache lookup
+- **WHEN** a segment from coordinate A to coordinate B is requested and its reverse B to A was previously cached in foot mode
+- **THEN** the system inverts the cached polyline and resolves the segment with zero network requests
 
 #### Scenario: Concurrent execution for multiple dirty segments
 - **WHEN** multiple segments require recalculation simultaneously (such as route initialization, multi-segment mode toggle, or bulk import)

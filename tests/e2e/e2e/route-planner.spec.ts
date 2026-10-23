@@ -4,8 +4,9 @@ function getMapClickCoordinates(page: Page) {
   const viewport = page.viewportSize();
   const isMobile = (viewport?.width ?? 1280) < 768;
   return {
-    point1: isMobile ? { x: 180, y: 200 } : { x: 550, y: 250 },
-    point2: isMobile ? { x: 230, y: 250 } : { x: 650, y: 320 },
+    point1: isMobile ? { x: 160, y: 150 } : { x: 550, y: 250 },
+    point2: isMobile ? { x: 220, y: 180 } : { x: 650, y: 320 },
+    point3: isMobile ? { x: 180, y: 210 } : { x: 700, y: 350 },
   };
 }
 
@@ -241,4 +242,59 @@ test.describe('Interactive Route Planner & Editor Suite', () => {
     await expect(savedItem).toContainText('Veluwezoom Rondje');
     await expect(page.locator('#btn-load-route-saved-veluwe-1')).toBeVisible();
   });
+
+  test('performs differential updates and segment cache hits without redundant network calls', async ({
+    page,
+  }) => {
+    let routeApiCallCount = 0;
+    await page.route('/api/routing/route', async (route) => {
+      routeApiCallCount++;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        json: {
+          coordinates: [
+            [5.12, 52.09],
+            [5.125, 52.092],
+            [5.13, 52.095],
+          ],
+          distanceMeters: 1200,
+          durationSeconds: 900,
+          isFallback: false,
+        },
+      });
+    });
+
+    const { point1, point2, point3 } = getMapClickCoordinates(page);
+
+    // Start editing
+    await page.locator('#btn-new-route').click();
+    const mapCanvas = page.locator('#maplibre-canvas');
+
+    // Place point 1 & 2
+    await mapCanvas.click({ position: point1 });
+    await mapCanvas.click({ position: point2 });
+    await expect(page.locator('#waypoint-marker-1')).toBeVisible();
+    await expect(page.locator('#stat-point-count')).toContainText('2 wps');
+
+    // First segment calculated: exactly 1 network call
+    expect(routeApiCallCount).toBe(1);
+
+    // Place point 3
+    await mapCanvas.click({ position: point3 });
+    await expect(page.locator('#waypoint-marker-2')).toBeVisible();
+    await expect(page.locator('#stat-point-count')).toContainText('3 wps');
+
+    // Differential update: exactly 1 additional call for the new segment (wp2 -> wp3)
+    expect(routeApiCallCount).toBe(2);
+
+    // Reverse the route
+    const reverseBtn = page.locator('#btn-reverse-route');
+    await reverseBtn.click();
+    await expect(page.locator('#stat-point-count')).toContainText('3 wps');
+
+    // Bidirectional cache resolves reversed segments without network calls
+    expect(routeApiCallCount).toBe(2);
+  });
 });
+

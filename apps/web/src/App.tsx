@@ -28,6 +28,9 @@ import {
   deleteStageAndPoints,
   calculateStageMetrics,
   calculateRouteMetrics,
+  diffRouteSegments,
+  createWaypointPairs,
+  globalSegmentCache,
 } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
@@ -73,6 +76,10 @@ export const App: React.FC = () => {
   const [activeStageId, setActiveStageId] = useState<string | null>('stage-1');
   const [waypoints, setWaypoints] = useState<RouteWaypoint[]>([]);
   const [segments, setSegments] = useState<RouteSegment[]>([]);
+  const segmentsRef = useRef<RouteSegment[]>([]);
+  segmentsRef.current = segments;
+  const committedSegmentsRef = useRef<RouteSegment[]>([]);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
   const [history, setHistory] = useState<HistorySnapshot[]>([
     {
       waypoints: [],
@@ -192,17 +199,113 @@ export const App: React.FC = () => {
       return;
     }
 
+    // Cancel any previous in-flight calculation requests
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeAbortControllerRef.current = controller;
+
     let isCancelled = false;
+
+    const applyRouteState = (computedSegments: RouteSegment[]) => {
+      let totalMeters = 0;
+      for (const seg of computedSegments) {
+        totalMeters += seg.distanceMeters || 0;
+      }
+
+      const hikeStages: HikeStage[] = stages.map((stage) => {
+        const stageWps = waypoints.filter(
+          (w) => w.stageId === stage.id || (!w.stageId && stage.stageNumber === 1)
+        );
+        const stageCoords: Coordinate[] = [];
+
+        if (stageWps.length === 1) {
+          stageCoords.push(stageWps[0].coordinate);
+        } else if (stageWps.length > 1) {
+          const stageWpIds = new Set(stageWps.map((w) => w.id));
+          const stageSegs = computedSegments.filter(
+            (seg) => stageWpIds.has(seg.fromWaypointId) && stageWpIds.has(seg.toWaypointId)
+          );
+
+          stageSegs.forEach((seg, sIdx) => {
+            if (sIdx === 0) {
+              stageCoords.push(...seg.coordinates);
+            } else {
+              stageCoords.push(...seg.coordinates.slice(1));
+            }
+          });
+
+          // Fallback: If segments didn't provide coordinates or routing failed, interpolate straight lines
+          if (stageCoords.length < 2 && stageWps.length >= 2) {
+            stageCoords.length = 0;
+            for (let w = 0; w < stageWps.length - 1; w++) {
+              const line = interpolateStraightLine(
+                stageWps[w].coordinate,
+                stageWps[w + 1].coordinate
+              );
+              if (w === 0) {
+                stageCoords.push(...line);
+              } else {
+                stageCoords.push(...line.slice(1));
+              }
+            }
+          } else if (stageCoords.length === 0 && stageWps.length === 1) {
+            stageCoords.push(stageWps[0].coordinate);
+          }
+        }
+
+        let stageDistMeters = 0;
+        for (let c = 0; c < stageCoords.length - 1; c++) {
+          stageDistMeters +=
+            calculateHaversineDistanceKm(stageCoords[c], stageCoords[c + 1]) * 1000;
+        }
+
+        const stageMetrics = calculateRouteMetrics(stageCoords);
+
+        return {
+          id: stage.id,
+          stageNumber: stage.stageNumber,
+          title: stage.title,
+          notes: stage.notes,
+          transportType: stage.transportType || 'foot',
+          distanceKm: Number((stageDistMeters / 1000).toFixed(2)),
+          coordinates: stageCoords,
+          elevationGainMeters: stageMetrics.elevationMetrics.elevationGainMeters,
+          elevationLossMeters: stageMetrics.elevationMetrics.elevationLossMeters,
+        };
+      });
+
+      const distKm = Number((totalMeters / 1000).toFixed(2));
+      const allRouteCoords = hikeStages.flatMap((s) => s.coordinates);
+      const overallMetrics = calculateRouteMetrics(allRouteCoords);
+
+      setCurrentRoute((prev) => ({
+        id: activeSavedRouteId || 'active-route',
+        title: prev?.title || t('planner.defaultRouteTitle'),
+        description: prev?.description,
+        location: prev?.location,
+        status: prev?.status || 'draft',
+        priceEur: prev?.priceEur ?? 0,
+        totalDistanceKm: distKm,
+        stages: hikeStages,
+        elevationMetrics: overallMetrics.elevationMetrics,
+        createdAt: prev?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+    };
 
     const updateRoute = async () => {
       if (waypoints.length === 0) {
         setSegments([]);
+        committedSegmentsRef.current = [];
         setCurrentRoute(null);
         return;
       }
 
       if (waypoints.length === 1) {
         setSegments([]);
+        committedSegmentsRef.current = [];
         const singlePt = waypoints[0].coordinate;
         const targetStageId = waypoints[0].stageId || stages[0]?.id || 'stage-1';
 
@@ -216,185 +319,213 @@ export const App: React.FC = () => {
           coordinates: s.id === targetStageId ? [singlePt] : [],
         }));
 
-        setCurrentRoute({
+        setCurrentRoute((prev) => ({
           id: activeSavedRouteId || 'active-route',
-          title: currentRoute?.title || t('planner.defaultRouteTitle'),
-          description: currentRoute?.description,
-          location: currentRoute?.location,
-          status: currentRoute?.status || 'draft',
-          priceEur: currentRoute?.priceEur ?? 0,
+          title: prev?.title || t('planner.defaultRouteTitle'),
+          description: prev?.description,
+          location: prev?.location,
+          status: prev?.status || 'draft',
+          priceEur: prev?.priceEur ?? 0,
           totalDistanceKm: 0,
           stages: updatedStages,
           elevationMetrics: { elevationGainMeters: 0, elevationLossMeters: 0 },
-          createdAt: currentRoute?.createdAt || new Date().toISOString(),
+          createdAt: prev?.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        });
+        }));
         return;
       }
 
+      // 1. Create target waypoint pairs and diff against existing committed segments
+      const targetPairs = createWaypointPairs(waypoints, routingMode);
+      const { retainedSegments, dirtyPairs } = diffRouteSegments(
+        committedSegmentsRef.current,
+        targetPairs
+      );
+
+      const resolvedSegments: RouteSegment[] = new Array(targetPairs.length);
+      retainedSegments.forEach((seg, idx) => {
+        resolvedSegments[idx] = seg;
+      });
+
+      // 2. Classify dirty pairs into direct mode / cache hits vs network fetches
+      const needsFetch: typeof targetPairs = [];
+
+      for (const pair of dirtyPairs) {
+        const mode = pair.routingMode;
+        if (mode === 'direct') {
+          const directCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
+          const directDist =
+            calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
+          const directMetrics = calculateRouteMetrics(directCoords);
+          const directSeg: RouteSegment = {
+            id: `seg-${pair.from.id}-${pair.to.id}`,
+            fromWaypointId: pair.from.id,
+            toWaypointId: pair.to.id,
+            routingMode: 'direct',
+            coordinates: directCoords,
+            distanceMeters: directDist,
+            elevationGainMeters: directMetrics.elevationMetrics.elevationGainMeters,
+            elevationLossMeters: directMetrics.elevationMetrics.elevationLossMeters,
+          };
+          globalSegmentCache.set(pair.from.coordinate, pair.to.coordinate, 'direct', {
+            coordinates: directCoords,
+            distanceMeters: directDist,
+            elevationGainMeters: directMetrics.elevationMetrics.elevationGainMeters,
+            elevationLossMeters: directMetrics.elevationMetrics.elevationLossMeters,
+          });
+          resolvedSegments[pair.index] = directSeg;
+        } else {
+          // Check segment cache (supports forward & reverse bidirectional matching)
+          const cached = globalSegmentCache.get(pair.from.coordinate, pair.to.coordinate, mode);
+          if (cached) {
+            const segMetrics = calculateRouteMetrics(cached.coordinates);
+            resolvedSegments[pair.index] = {
+              id: `seg-${pair.from.id}-${pair.to.id}`,
+              fromWaypointId: pair.from.id,
+              toWaypointId: pair.to.id,
+              routingMode: mode,
+              coordinates: cached.coordinates,
+              distanceMeters: cached.distanceMeters,
+              elevationGainMeters:
+                cached.elevationGainMeters ?? segMetrics.elevationMetrics.elevationGainMeters,
+              elevationLossMeters:
+                cached.elevationLossMeters ?? segMetrics.elevationMetrics.elevationLossMeters,
+            };
+          } else {
+            needsFetch.push(pair);
+          }
+        }
+      }
+
+      // 3. If all segments are retained or resolved from cache, update immediately (0ms delay)
+      if (needsFetch.length === 0) {
+        committedSegmentsRef.current = resolvedSegments;
+        setSegments(resolvedSegments);
+        applyRouteState(resolvedSegments);
+        setIsCalculating(false);
+        return;
+      }
+
+      // 4. Optimistic UI preview: render straight line for pending segments with 0ms visual latency
+      const optimisticSegments = [...resolvedSegments];
+      for (const pair of needsFetch) {
+        const optCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
+        const optDist =
+          calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
+        const optMetrics = calculateRouteMetrics(optCoords);
+        optimisticSegments[pair.index] = {
+          id: `seg-${pair.from.id}-${pair.to.id}`,
+          fromWaypointId: pair.from.id,
+          toWaypointId: pair.to.id,
+          routingMode: pair.routingMode,
+          coordinates: optCoords,
+          distanceMeters: optDist,
+          elevationGainMeters: optMetrics.elevationMetrics.elevationGainMeters,
+          elevationLossMeters: optMetrics.elevationMetrics.elevationLossMeters,
+        };
+      }
+      setSegments(optimisticSegments);
+      applyRouteState(optimisticSegments);
       setIsCalculating(true);
+
+      // 5. Parallel concurrent fetching with Promise.all and isolated try/catch per segment
       try {
-        const newSegments: RouteSegment[] = [];
-        let totalMeters = 0;
-
-        for (let i = 0; i < waypoints.length - 1; i++) {
-          const fromWp = waypoints[i];
-          const toWp = waypoints[i + 1];
-          const mode = toWp.routingMode || routingMode;
-
+        const fetchPromises = needsFetch.map(async (pair) => {
           let segmentCoords: Coordinate[] = [];
           let segmentDistMeters = 0;
+          let isFallback = false;
 
-          if (mode === 'direct') {
-            segmentCoords = interpolateStraightLine(fromWp.coordinate, toWp.coordinate);
-            segmentDistMeters =
-              calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
-          } else {
-            try {
-              const res = await fetch('/api/routing/route', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  coordinates: [
-                    [fromWp.coordinate.lng, fromWp.coordinate.lat],
-                    [toWp.coordinate.lng, toWp.coordinate.lat],
-                  ],
-                }),
-              });
+          try {
+            const res = await fetch('/api/routing/route', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: controller.signal,
+              body: JSON.stringify({
+                coordinates: [
+                  [pair.from.coordinate.lng, pair.from.coordinate.lat],
+                  [pair.to.coordinate.lng, pair.to.coordinate.lat],
+                ],
+              }),
+            });
 
-              if (res.ok) {
-                const data = await res.json();
-                if (data.coordinates && data.coordinates.length > 0) {
-                  segmentCoords = data.coordinates.map((item: any) => {
-                    if (Array.isArray(item)) {
-                      return { lng: item[0], lat: item[1] };
-                    }
-                    return { lng: item.lng, lat: item.lat, elevation: item.elevation };
-                  });
-                  segmentDistMeters =
-                    data.distanceMeters ||
-                    calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
-                } else {
-                  segmentCoords = interpolateStraightLine(fromWp.coordinate, toWp.coordinate);
-                  segmentDistMeters =
-                    calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
-                }
-              } else {
-                segmentCoords = interpolateStraightLine(fromWp.coordinate, toWp.coordinate);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.coordinates && data.coordinates.length > 0 && !data.isFallback) {
+                segmentCoords = data.coordinates.map((item: any) => {
+                  if (Array.isArray(item)) {
+                    return { lng: item[0], lat: item[1] };
+                  }
+                  return { lng: item.lng, lat: item.lat, elevation: item.elevation };
+                });
                 segmentDistMeters =
-                  calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
+                  data.distanceMeters ||
+                  calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
+              } else {
+                isFallback = true;
+                segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
+                segmentDistMeters =
+                  calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
               }
-            } catch {
-              segmentCoords = interpolateStraightLine(fromWp.coordinate, toWp.coordinate);
+            } else {
+              isFallback = true;
+              segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
               segmentDistMeters =
-                calculateHaversineDistanceKm(fromWp.coordinate, toWp.coordinate) * 1000;
+                calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
             }
+          } catch (err: any) {
+            if (err?.name === 'AbortError') {
+              throw err;
+            }
+            isFallback = true;
+            segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
+            segmentDistMeters =
+              calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
           }
 
           const segMetrics = calculateRouteMetrics(segmentCoords);
 
-          newSegments.push({
-            id: `seg-${fromWp.id}-${toWp.id}`,
-            fromWaypointId: fromWp.id,
-            toWaypointId: toWp.id,
-            routingMode: mode,
+          // Only cache in globalSegmentCache if trail snapping succeeded or routingMode is 'direct'
+          if (!isFallback || pair.routingMode === 'direct') {
+            globalSegmentCache.set(pair.from.coordinate, pair.to.coordinate, pair.routingMode, {
+              coordinates: segmentCoords,
+              distanceMeters: segmentDistMeters,
+              elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
+              elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
+            });
+          }
+
+          const seg: RouteSegment = {
+            id: `seg-${pair.from.id}-${pair.to.id}`,
+            fromWaypointId: pair.from.id,
+            toWaypointId: pair.to.id,
+            routingMode: pair.routingMode,
             coordinates: segmentCoords,
             distanceMeters: segmentDistMeters,
             elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
             elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
-          });
+          };
 
-          totalMeters += segmentDistMeters;
+          return { index: pair.index, segment: seg };
+        });
+
+        const fetchedResults = await Promise.all(fetchPromises);
+
+        if (isCancelled || controller.signal.aborted) return;
+
+        for (const item of fetchedResults) {
+          resolvedSegments[item.index] = item.segment;
         }
 
-        if (isCancelled) return;
-
-        setSegments(newSegments);
-
-        // Partition coordinates and metrics per stage
-        const hikeStages: HikeStage[] = stages.map((stage) => {
-          const stageWps = waypoints.filter(
-            (w) => w.stageId === stage.id || (!w.stageId && stage.stageNumber === 1)
-          );
-          const stageCoords: Coordinate[] = [];
-
-          if (stageWps.length === 1) {
-            stageCoords.push(stageWps[0].coordinate);
-          } else if (stageWps.length > 1) {
-            const stageWpIds = new Set(stageWps.map((w) => w.id));
-            const stageSegs = newSegments.filter(
-              (seg) => stageWpIds.has(seg.fromWaypointId) && stageWpIds.has(seg.toWaypointId)
-            );
-
-            stageSegs.forEach((seg, sIdx) => {
-              if (sIdx === 0) {
-                stageCoords.push(...seg.coordinates);
-              } else {
-                stageCoords.push(...seg.coordinates.slice(1));
-              }
-            });
-
-            // Fallback: If segments didn't provide coordinates or routing failed, interpolate straight lines
-            if (stageCoords.length < 2 && stageWps.length >= 2) {
-              stageCoords.length = 0;
-              for (let w = 0; w < stageWps.length - 1; w++) {
-                const line = interpolateStraightLine(
-                  stageWps[w].coordinate,
-                  stageWps[w + 1].coordinate
-                );
-                if (w === 0) {
-                  stageCoords.push(...line);
-                } else {
-                  stageCoords.push(...line.slice(1));
-                }
-              }
-            } else if (stageCoords.length === 0 && stageWps.length === 1) {
-              stageCoords.push(stageWps[0].coordinate);
-            }
-          }
-
-          let stageDistMeters = 0;
-          for (let c = 0; c < stageCoords.length - 1; c++) {
-            stageDistMeters +=
-              calculateHaversineDistanceKm(stageCoords[c], stageCoords[c + 1]) * 1000;
-          }
-
-          const stageMetrics = calculateRouteMetrics(stageCoords);
-
-          return {
-            id: stage.id,
-            stageNumber: stage.stageNumber,
-            title: stage.title,
-            notes: stage.notes,
-            transportType: stage.transportType || 'foot',
-            distanceKm: Number((stageDistMeters / 1000).toFixed(2)),
-            coordinates: stageCoords,
-            elevationGainMeters: stageMetrics.elevationMetrics.elevationGainMeters,
-            elevationLossMeters: stageMetrics.elevationMetrics.elevationLossMeters,
-          };
-        });
-
-        const distKm = Number((totalMeters / 1000).toFixed(2));
-        const allRouteCoords = hikeStages.flatMap((s) => s.coordinates);
-        const overallMetrics = calculateRouteMetrics(allRouteCoords);
-
-        setCurrentRoute({
-          id: activeSavedRouteId || 'active-route',
-          title: currentRoute?.title || t('planner.defaultRouteTitle'),
-          description: currentRoute?.description,
-          location: currentRoute?.location,
-          status: currentRoute?.status || 'draft',
-          priceEur: currentRoute?.priceEur ?? 0,
-          totalDistanceKm: distKm,
-          stages: hikeStages,
-          elevationMetrics: overallMetrics.elevationMetrics,
-          createdAt: currentRoute?.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      } catch (err) {
+        committedSegmentsRef.current = resolvedSegments;
+        setSegments(resolvedSegments);
+        applyRouteState(resolvedSegments);
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
         console.error('Error calculating route segments:', err);
       } finally {
-        if (!isCancelled) {
+        if (!isCancelled && !controller.signal.aborted) {
           setIsCalculating(false);
         }
       }
@@ -404,6 +535,7 @@ export const App: React.FC = () => {
 
     return () => {
       isCancelled = true;
+      controller.abort();
     };
   }, [waypoints, stages, routingMode, activeSavedRouteId, t]);
 
@@ -480,6 +612,9 @@ export const App: React.FC = () => {
       transportType: 'foot',
     };
     setWaypoints([]);
+    setSegments([]);
+    committedSegmentsRef.current = [];
+    globalSegmentCache.clear();
     setStages([freshStage]);
     setActiveStageId('stage-1');
     setHistory([{ waypoints: [], stages: [freshStage], activeStageId: 'stage-1' }]);
