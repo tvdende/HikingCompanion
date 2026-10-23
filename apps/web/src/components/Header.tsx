@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {user && (
-        <div className="mode-toggle-container" role="group" aria-label="Application Mode">
+        <div className="mode-toggle-container" role="group" aria-label={t('nav.modeGroupAria')}>
           <button
             id="mode-switch-planner"
             type="button"
@@ -65,8 +65,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onModeChange('planner')}
             aria-pressed={currentMode === 'planner'}
           >
-            <span>📐</span>
-            <span>{t('nav.planner')}</span>
+            <span aria-hidden="true">📐</span>
+            <span className="mode-btn-label">{t('nav.planner')}</span>
           </button>
 
           <button
@@ -76,8 +76,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onModeChange('companion')}
             aria-pressed={currentMode === 'companion'}
           >
-            <span>🧭</span>
-            <span>{t('nav.companion')}</span>
+            <span aria-hidden="true">🧭</span>
+            <span className="mode-btn-label">{t('nav.companion')}</span>
           </button>
         </div>
       )}
@@ -96,6 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
+              title={user.name}
             >
               <div className="user-avatar-circle">
                 {user.avatarUrl ? (
@@ -108,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {user.name}
               </span>
               {getRoleBadge(user.role)}
-              <span className="dropdown-caret">▼</span>
+              <span className="dropdown-caret" aria-hidden="true">▼</span>
             </button>
 
             {dropdownOpen && (
@@ -116,6 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="dropdown-user-info">
                   <span className="dropdown-user-name">{user.name}</span>
                   <span className="dropdown-user-email">{user.email}</span>
+                  <span className="dropdown-user-role">{getRoleBadge(user.role)}</span>
                 </div>
 
                 <div className="dropdown-divider" />

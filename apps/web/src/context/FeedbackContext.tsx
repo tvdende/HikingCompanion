@@ -22,6 +22,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [nextId, setNextId] = useState(1);
+  // Auto-dismiss pauses while a toast is hovered or focused, so users get enough time to read it.
+  const [isPaused, setIsPaused] = useState(false);
 
   const dismiss = useCallback((id: number) => {
     setToasts((current) => current.filter((toast) => toast.id !== id));
@@ -46,11 +48,16 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }), [addToast, dismiss]);
 
   useEffect(() => {
+    if (isPaused) return;
     const timers = toasts
       .filter((toast) => toast.variant !== 'error')
       .map((toast) => window.setTimeout(() => dismiss(toast.id), 4000));
     return () => timers.forEach(window.clearTimeout);
-  }, [toasts, dismiss]);
+  }, [toasts, dismiss, isPaused]);
+
+  useEffect(() => {
+    if (toasts.length === 0) setIsPaused(false);
+  }, [toasts.length]);
 
   return (
     <FeedbackContext.Provider value={value}>
@@ -62,6 +69,10 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             className={`toast toast-${toast.variant}`}
             role={toast.variant === 'error' ? 'alert' : 'status'}
             aria-live={toast.variant === 'error' ? 'assertive' : 'polite'}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onFocus={() => setIsPaused(true)}
+            onBlur={() => setIsPaused(false)}
           >
             <span className="toast-message">{toast.message}</span>
             <button

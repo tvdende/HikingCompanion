@@ -53,6 +53,9 @@ export const en: TranslationCatalog = {
     rolePlanner: 'Planner',
     roleHiker: 'Hiker',
     selectLanguage: 'Select language',
+    languageDutch: 'Dutch (default)',
+    languageEnglish: 'English',
+    modeGroupAria: 'Application mode',
   },
   landing: {
     heroBadge: '🌲 For Long-Distance Hikers & Day Treks',
@@ -108,6 +111,8 @@ export const en: TranslationCatalog = {
   planner: {
     sidebarTitle: 'Route Planner',
     desktopModeBadge: 'Desktop Mode',
+    sheetExpand: 'Expand panel',
+    sheetCollapse: 'Collapse panel',
     activeRouteBadge: 'Active Route',
     statusDraftBadge: '🟡 Draft',
     statusDefinitiveBadge: '🟢 Definitive',
@@ -305,6 +310,7 @@ export const en: TranslationCatalog = {
     resizeSidebarTooltip: 'Drag to resize sidebar width (min 340px, max 650px)',
     expandDetails: 'Open details',
     collapseDetails: 'Collapse details',
+    waypointUnit: 'pts',
   },
   gpxModal: {
     importTitle: 'Import GPX',

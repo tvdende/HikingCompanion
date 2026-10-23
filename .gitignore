@@ -52,3 +52,4 @@ docs/temp*
 tmp/
 scratch/
 *temp*
+tests/e2e/screenshots/

@@ -28,7 +28,7 @@ export function SurfaceBreakdownCard({ breakdown, isAnalyzing, isSurfaceMode, on
   const values = breakdown as unknown as Record<string, number>;
 
   return <section className="mt-3 border border-[#e5e2da] bg-white p-3 rounded-lg" aria-label={t('surface.title')}>
-    <div className="flex items-center justify-between gap-2 mb-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
       <h4 className="text-sm font-bold m-0">{t('surface.title')}</h4>
       <Button variant="secondary" size="sm" onClick={onToggleMap} title={isSurfaceMode ? t('surface.showStages') : t('surface.showOnMap')}>
         <Map className="w-4 h-4" />{isSurfaceMode ? t('surface.showStages') : t('surface.showOnMap')}

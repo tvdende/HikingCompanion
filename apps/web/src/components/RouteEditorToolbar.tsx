@@ -2,6 +2,7 @@ import React from 'react';
 import type { RoutingMode } from '@hiking-companion/core';
 import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
+import type { LayoutTier } from '../hooks/useLayoutTier';
 import {
   Edit3,
   MousePointer2,
@@ -36,7 +37,7 @@ export interface RouteEditorToolbarProps {
   hasRoute?: boolean;
   waypointCount: number;
   isCalculating?: boolean;
-  sidebarWidth?: number;
+  layoutTier?: LayoutTier;
 }
 
 export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
@@ -57,22 +58,15 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
   hasRoute = false,
   waypointCount,
   isCalculating = false,
-  sidebarWidth,
+  layoutTier = 'wide',
 }) => {
   const { t } = useTranslation();
 
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 640;
-
   return (
+    <div className="planner-toolbar-region" data-layout-tier={layoutTier}>
     <div
       id="route-editor-toolbar"
-      style={{
-        left:
-          isDesktop && sidebarWidth
-            ? `calc(${sidebarWidth + 24}px + (100% - ${sidebarWidth + 24}px) / 2)`
-            : undefined,
-      }}
-      className="absolute top-[calc(var(--header-height)+12px)] left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-[#e5e2da] rounded-full flex items-center gap-2 px-3 py-1.5 z-30 shadow-md max-w-[95vw] overflow-x-auto"
+      className="planner-toolbar bg-white/95 backdrop-blur-md border border-[#e5e2da] flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 shadow-md"
       role="toolbar"
       aria-label={t('editorToolbar.ariaToolbar')}
     >
@@ -86,10 +80,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         aria-pressed={isEditing}
       >
         {isEditing ? <Edit3 className="w-4 h-4" /> : <MousePointer2 className="w-4 h-4" />}
-        <span>{isEditing ? t('editorToolbar.btnEditActive') : t('editorToolbar.btnStartEdit')}</span>
+        <span className="toolbar-label">{isEditing ? t('editorToolbar.btnEditActive') : t('editorToolbar.btnStartEdit')}</span>
       </Button>
 
-      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
+      <div className="toolbar-divider-line w-[1px] h-5 bg-[#e5e2da] shrink-0" aria-hidden="true" />
 
       {/* Snap Mode Toggle */}
       <div
@@ -111,7 +105,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           role="radio"
         >
           <Footprints className="w-3.5 h-3.5" />
-          <span>{t('editorToolbar.methodSnap')}</span>
+          <span className="toolbar-label">{t('editorToolbar.methodSnap')}</span>
         </button>
         <button
           id="btn-mode-direct"
@@ -127,11 +121,11 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           role="radio"
         >
           <Minus className="w-3.5 h-3.5" />
-          <span>{t('editorToolbar.methodDirect')}</span>
+          <span className="toolbar-label">{t('editorToolbar.methodDirect')}</span>
         </button>
       </div>
 
-      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
+      <div className="toolbar-divider-line w-[1px] h-5 bg-[#e5e2da] shrink-0" aria-hidden="true" />
 
       {/* History Controls: Undo & Redo */}
       <div className="flex items-center gap-1">
@@ -175,7 +169,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         )}
       </div>
 
-      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
+      <div className="toolbar-divider-line w-[1px] h-5 bg-[#e5e2da] shrink-0" aria-hidden="true" />
 
       {/* Route Direction Reversal */}
       <Button
@@ -187,7 +181,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         title={t('editorToolbar.tooltipReverse')}
       >
         <ArrowLeftRight className="w-4 h-4" />
-        <span>{t('editorToolbar.reverse')}</span>
+        <span className="toolbar-label">{t('editorToolbar.reverse')}</span>
       </Button>
 
       {/* Clear Route */}
@@ -200,10 +194,10 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
         title={t('editorToolbar.tooltipClear')}
       >
         <Trash2 className="w-4 h-4" />
-        <span>{t('editorToolbar.clear')}</span>
+        <span className="toolbar-label">{t('editorToolbar.clear')}</span>
       </Button>
 
-      <div className="w-[1px] h-5 bg-[#e5e2da] shrink-0" />
+      <div className="toolbar-divider-line w-[1px] h-5 bg-[#e5e2da] shrink-0" aria-hidden="true" />
 
       {/* Storage & Persistence */}
       <div className="flex items-center gap-1.5">
@@ -216,7 +210,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           title={t('editorToolbar.tooltipSave')}
         >
           <Save className="w-4 h-4" />
-          <span>{isCalculating ? t('editorToolbar.calculating') : t('editorToolbar.save')}</span>
+          <span className="toolbar-label">{isCalculating ? t('editorToolbar.calculating') : t('editorToolbar.save')}</span>
         </Button>
 
         <Button
@@ -227,7 +221,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           title={t('editorToolbar.tooltipMyRoutes')}
         >
           <BookOpen className="w-4 h-4" />
-          <span>{t('editorToolbar.myRoutes')}</span>
+          <span className="toolbar-label">{t('editorToolbar.myRoutes')}</span>
         </Button>
 
         {onOpenMetadata && (
@@ -240,7 +234,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
             title={t('planner.tooltipManageStatus')}
           >
             <Settings className="w-4 h-4" />
-            <span>{t('planner.btnManageStatus')}</span>
+            <span className="toolbar-label">{t('planner.btnManageStatus')}</span>
           </Button>
         )}
       </div>
@@ -250,6 +244,7 @@ export const RouteEditorToolbar: React.FC<RouteEditorToolbarProps> = ({
           <Loader2 className="w-4 h-4 animate-spin text-[#24583d]" />
         </span>
       )}
+    </div>
     </div>
   );
 };

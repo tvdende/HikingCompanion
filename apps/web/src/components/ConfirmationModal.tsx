@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '../i18n';
 import { Button } from './ui/button';
 
@@ -88,7 +89,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   };
 
-  return (
+  // Portal to the body: ancestors with backdrop-filter would otherwise clip the fixed overlay.
+  return createPortal(
     <div className="modal-overlay confirmation-overlay" role="presentation">
       <div
         ref={dialogRef}
@@ -126,6 +128,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

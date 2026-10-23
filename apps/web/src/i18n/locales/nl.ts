@@ -51,6 +51,9 @@ export const nl = {
     rolePlanner: 'Planner',
     roleHiker: 'Wandelaar',
     selectLanguage: 'Taal kiezen',
+    languageDutch: 'Nederlands (standaard)',
+    languageEnglish: 'Engels',
+    modeGroupAria: 'Applicatiemodus',
   },
   landing: {
     heroBadge: '🌲 Voor Langeafstandswandelaars & Dagtochten',
@@ -106,6 +109,8 @@ export const nl = {
   planner: {
     sidebarTitle: 'Route Planner',
     desktopModeBadge: 'Desktop Modus',
+    sheetExpand: 'Paneel vergroten',
+    sheetCollapse: 'Paneel verkleinen',
     activeRouteBadge: 'Actieve Route',
     statusDraftBadge: '🟡 Concept',
     statusDefinitiveBadge: '🟢 Definitief',
@@ -303,6 +308,7 @@ export const nl = {
     resizeSidebarTooltip: 'Sleep om zijbalk breder of smaller te maken (min 340px, max 650px)',
     expandDetails: 'Details openen',
     collapseDetails: 'Details inklappen',
+    waypointUnit: 'pt',
   },
   gpxModal: {
     importTitle: 'GPX Importeren',

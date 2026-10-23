@@ -21,9 +21,9 @@ export const LanguageSelector: React.FC = () => {
         }`}
         onClick={() => setLocale('nl')}
         aria-pressed={locale === 'nl'}
-        title="Nederlands (standaard)"
+        title={t('nav.languageDutch')}
       >
-        <span>🇳🇱</span>
+        <span className="lang-flag" aria-hidden="true">🇳🇱</span>
         <span>NL</span>
       </button>
 
@@ -37,9 +37,9 @@ export const LanguageSelector: React.FC = () => {
         }`}
         onClick={() => setLocale('en')}
         aria-pressed={locale === 'en'}
-        title="English"
+        title={t('nav.languageEnglish')}
       >
-        <span>🇬🇧</span>
+        <span className="lang-flag" aria-hidden="true">🇬🇧</span>
         <span>EN</span>
       </button>
     </div>

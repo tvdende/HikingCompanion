@@ -76,9 +76,12 @@ test.describe('Admin User Management Flow', () => {
 
     const trigger = page.locator('#user-profile-trigger');
     await expect(trigger).toBeVisible();
-    await expect(trigger.locator('.role-tag.admin')).toBeVisible();
+    // Compact screens (< 768px) show the role badge in the profile menu instead of the trigger.
+    const isCompact = (page.viewportSize()?.width ?? 1280) < 768;
+    if (!isCompact) await expect(trigger.locator('.role-tag.admin')).toBeVisible();
 
     await trigger.click();
+    if (isCompact) await expect(page.locator('#user-profile-dropdown .role-tag.admin')).toBeVisible();
 
     const adminBtn = page.locator('#btn-header-admin-panel');
     await expect(adminBtn).toBeVisible();
