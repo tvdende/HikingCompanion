@@ -1,0 +1,5 @@
+[
+  ["Longitude", "Latitude", "Elevation", "Distance", "WayTags"],
+  ["5121444", "52090681", "5", "2", "highway=pedestrian surface=sett"],
+  ["5121557", "52090705", "5", "8", "highway=footway surface=ground"]
+]

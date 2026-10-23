@@ -2,12 +2,14 @@ import { Hono } from 'hono';
 import { eq, and, or, like, desc } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { routes, type RouteStatus } from '../db/schema.js';
+import { analyzeRouteSurface } from './surface.js';
 import type { Env } from '../index.js';
 import type {
   Coordinate,
   HikeStage,
   RouteElevationMetrics,
   RouteWaypoint,
+  SurfaceBreakdown,
   UserProfile,
 } from '@hiking-companion/core';
 
@@ -107,6 +109,7 @@ routesApi.post('/', async (c) => {
     waypoints?: RouteWaypoint[];
     stages?: HikeStage[];
     elevationMetrics?: RouteElevationMetrics;
+    surfaceBreakdown?: SurfaceBreakdown;
   };
 
   try {
@@ -142,6 +145,12 @@ routesApi.post('/', async (c) => {
     typeof body.priceEur === 'number' && !isNaN(body.priceEur) && body.priceEur >= 0
       ? Number(body.priceEur.toFixed(2))
       : 0;
+  const routeStages = body.stages && body.stages.length > 0
+    ? body.stages
+    : coordinates.length > 1
+      ? [{ id: 'stage-1', stageNumber: 1, title: 'Route', distanceKm: totalDistanceKm, coordinates }]
+      : [];
+  const surfaceBreakdown = body.surfaceBreakdown ?? await analyzeRouteSurface(routeStages);
 
   await db.insert(routes).values({
     id: routeId,
@@ -156,6 +165,7 @@ routesApi.post('/', async (c) => {
     waypointsJson: body.waypoints ? JSON.stringify(body.waypoints) : null,
     stagesJson: body.stages ? JSON.stringify(body.stages) : null,
     elevationMetricsJson: body.elevationMetrics ? JSON.stringify(body.elevationMetrics) : null,
+    surfaceBreakdownJson: surfaceBreakdown ? JSON.stringify(surfaceBreakdown) : null,
     createdAt: now,
     updatedAt: now,
   });
@@ -176,6 +186,7 @@ routesApi.post('/', async (c) => {
         waypoints: body.waypoints || [],
         stages: body.stages || [],
         elevationMetrics: body.elevationMetrics || null,
+        surfaceBreakdown: surfaceBreakdown || null,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       },
@@ -223,6 +234,7 @@ routesApi.get('/:id', async (c) => {
       waypoints: r.waypointsJson ? JSON.parse(r.waypointsJson) : [],
       stages: r.stagesJson ? JSON.parse(r.stagesJson) : [],
       elevationMetrics: r.elevationMetricsJson ? JSON.parse(r.elevationMetricsJson) : null,
+      surfaceBreakdown: r.surfaceBreakdownJson ? JSON.parse(r.surfaceBreakdownJson) : null,
       createdAt: new Date(r.createdAt).toISOString(),
       updatedAt: new Date(r.updatedAt).toISOString(),
     },
@@ -264,6 +276,7 @@ routesApi.put('/:id', async (c) => {
     waypoints?: RouteWaypoint[];
     stages?: HikeStage[];
     elevationMetrics?: RouteElevationMetrics;
+    surfaceBreakdown?: SurfaceBreakdown;
   };
 
   try {
@@ -276,6 +289,7 @@ routesApi.put('/:id', async (c) => {
   const updateValues: Record<string, unknown> = {
     updatedAt: now,
   };
+  const hasGeometryUpdate = body.coordinates !== undefined || body.stages !== undefined;
 
   if (typeof body.title === 'string' && body.title.trim().length > 0) {
     updateValues.title = body.title.trim();
@@ -312,6 +326,20 @@ routesApi.put('/:id', async (c) => {
   if (body.elevationMetrics) {
     updateValues.elevationMetricsJson = JSON.stringify(body.elevationMetrics);
   }
+  if (hasGeometryUpdate) {
+    const updatedCoordinates = body.coordinates && body.coordinates.length > 0
+      ? body.coordinates
+      : (body.stages || []).flatMap((stage) => stage.coordinates || []);
+    const updatedStages = body.stages && body.stages.length > 0
+      ? body.stages
+      : updatedCoordinates.length > 1
+        ? [{ id: 'stage-1', stageNumber: 1, title: 'Route', distanceKm: body.totalDistanceKm || 0, coordinates: updatedCoordinates }]
+        : [];
+    const surfaceBreakdown = body.surfaceBreakdown ?? await analyzeRouteSurface(updatedStages);
+    updateValues.surfaceBreakdownJson = surfaceBreakdown ? JSON.stringify(surfaceBreakdown) : null;
+  } else if (body.surfaceBreakdown) {
+    updateValues.surfaceBreakdownJson = JSON.stringify(body.surfaceBreakdown);
+  }
 
   await db.update(routes).set(updateValues).where(eq(routes.id, routeId));
 
@@ -334,6 +362,7 @@ routesApi.put('/:id', async (c) => {
       status: (r.status || 'draft') as RouteStatus,
       priceEur: r.priceEur ?? 0,
       totalDistanceKm: r.totalDistanceKm,
+      surfaceBreakdown: r.surfaceBreakdownJson ? JSON.parse(r.surfaceBreakdownJson) : null,
       updatedAt: new Date(r.updatedAt).toISOString(),
     },
   });

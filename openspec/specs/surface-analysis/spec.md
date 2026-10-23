@@ -1,8 +1,10 @@
+# surface-analysis Specification
+
 ## Purpose
 
 Enriches hiking routes with surface analysis by querying OpenStreetMap way tags along the route corridor or extracting tags directly from routing engines, categorizing terrain into unpaved, gravel, paved, and unknown segments, calculating percentage and distance metrics, persisting results in Cloudflare D1, and rendering interactive colored trail segments on the map.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: OpenStreetMap Surface Tag Classification
 The system SHALL classify trail segments based on OpenStreetMap `surface`, `tracktype`, and `highway` tags into normalized categories: `unpaved`, `gravel`, `paved`, and `unknown`.
@@ -23,25 +25,34 @@ The system SHALL classify trail segments based on OpenStreetMap `surface`, `trac
 - **WHEN** a coordinate segment does not match known OSM ways or lacks surface tags
 - **THEN** the system classifies the segment as `unknown`
 
-### Requirement: Direct BRouter Tag Extraction for Planned Routes
-The system SHALL extract OpenStreetMap tags (`surface`, `highway`, `tracktype`) directly from BRouter response messages (`features[0].properties.messages`) during route calculation, yielding 0ms latency surface metrics without separate Overpass queries.
+### Requirement: Surface Analysis Result Contract
+The system SHALL return a completed surface analysis as a structured result containing a normalized breakdown, categorized walking segments, a data source (`brouter`, `overpass`, or `unavailable`), and availability status. The categorized segments SHALL cover all included walking geometry; portions that cannot be classified SHALL be represented as `unknown` segments.
+
+#### Scenario: Analysis result identifies its source
+- **WHEN** surface analysis completes from routing metadata or a corridor query
+- **THEN** the result identifies the source used
+- **AND** its categorized segments and distance totals cover the same included walking geometry
+
+### Requirement: Direct Routing-Metadata Analysis for Planned Routes
+The system SHALL preserve routing-engine surface metadata with each calculated walking segment and use that metadata to populate surface analysis without a separate corridor-analysis request when the metadata matches the supported response contract.
 
 #### Scenario: Extract surface tags from BRouter calculation
 - **GIVEN** a route calculated via BRouter
-- **WHEN** BRouter returns segment messages containing way metadata strings
+- **WHEN** BRouter returns metadata matching the supported message contract
 - **THEN** the system parses the messages and assigns classified surface categories to corresponding coordinate segments
 - **AND** the route's surface breakdown is populated immediately without issuing an external Overpass API request
 
 ### Requirement: Corridor Surface Analysis API for GPX Imports
-The system SHALL provide an API endpoint `POST /api/routes/surface-analysis` that takes a list of route coordinates, queries OpenStreetMap way features along the route corridor, downsamples coordinates for optimal query performance, and returns categorized path segments.
+The system SHALL provide an API endpoint `POST /api/routes/surface-analysis` that takes walking route geometry, queries OpenStreetMap way features along a bounded route corridor, and returns a structured surface analysis result. The endpoint SHALL reject empty or zero-length walking geometry without calling the external OSM service.
 
 #### Scenario: Successful corridor surface analysis for imported GPX
 - **WHEN** a client submits a valid coordinate array for an imported GPX track
-- **THEN** the API queries OSM ways along the route corridor with a 25m buffer, matches coordinates to intersecting ways, and returns a structured breakdown payload with segment categories
+- **THEN** the API queries OSM ways along the route corridor with a 25m buffer, deterministically matches route geometry to nearby ways, and returns a structured breakdown payload with segment categories
 
 #### Scenario: External OSM service timeout fallback
 - **WHEN** the external OSM data source fails or times out (5-second timeout)
-- **THEN** the API returns a graceful fallback response marking segments as `unknown` with a status flag indicating service unavailability
+- **THEN** the API returns a successful, unavailable analysis result in which all included walking segments are `unknown`
+- **AND** the result identifies the source as unavailable so the client can distinguish it from mapped unknown terrain
 
 ### Requirement: Route Surface Breakdown Calculation with Strict Normalization
 The system SHALL compute total distances in meters and kilometers, as well as the exact percentage distribution for each surface category (`unpaved`, `gravel`, `paved`, and `unknown`) across the entire route.
@@ -50,6 +61,20 @@ The system SHALL compute total distances in meters and kilometers, as well as th
 - **WHEN** surface segments are computed for a route
 - **THEN** the sum of individual category distances (`unpavedMeters`, `gravelMeters`, `pavedMeters`, `unknownMeters`) equals the total route distance
 - **AND** the percentage fields (`unpavedPercentage`, `gravelPercentage`, `pavedPercentage`, `unknownPercentage`) strictly total 100% by adjusting any fractional rounding difference into the largest category
+
+### Requirement: Transit Exclusion and Analysis Invalidation
+The system SHALL exclude transit geometry from surface distance totals and terrain coloring while retaining it, waypoints, and stage markers in every map mode. It SHALL retain a persisted analysis for metadata-only route updates and invalidate it before persistence whenever included walking geometry or stage composition changes.
+
+#### Scenario: Metadata-only update retains analysis
+- **GIVEN** a saved route with a completed surface analysis
+- **WHEN** its title, description, price, or lifecycle status changes without changing walking geometry or stage composition
+- **THEN** the saved surface analysis remains available without a new external analysis request
+
+#### Scenario: Geometry update invalidates analysis
+- **GIVEN** a saved route with a completed surface analysis
+- **WHEN** a walking stage is added, removed, or its geometry changes
+- **THEN** the prior analysis is removed before the route is persisted
+- **AND** a newly requested or automatic analysis covers the updated walking geometry only
 
 ### Requirement: Visual Surface Breakdown Display & Interactive Map Layer Toggle
 The system SHALL render:
@@ -76,7 +101,7 @@ The system SHALL persist the computed surface breakdown metrics and segment clas
 
 ### Requirement: Automatic Surface Analysis on Route Save
 When a user saves or updates a route (`POST /api/routes` or `PUT /api/routes/:id`):
-- If the route's `surfaceBreakdown` is not yet computed or known, the backend SHALL automatically query the terrain and surface types per path segment from OpenStreetMap.
+- If the route has included walking geometry and no valid `surfaceBreakdown`, the backend SHALL automatically request surface analysis for that walking geometry.
 - The resulting surface breakdown and colored segment classifications MUST be persisted directly in the D1 database alongside the route coordinates.
 
 #### Scenario: Saving a newly planned route without prior manual surface analysis

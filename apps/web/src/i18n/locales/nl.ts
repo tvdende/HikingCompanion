@@ -303,6 +303,18 @@ export const nl = {
     btnImportAsSingle: 'Als één samengevoegde etappe importeren',
     btnCancel: 'Annuleren',
   },
+  surface: {
+    title: 'Ondergrondverdeling',
+    unpaved: 'Onverhard',
+    gravel: 'Halfverhard / Grind',
+    paved: 'Verhard',
+    unknown: 'Onbekend',
+    analyzeButton: 'Analyseer ondergrond',
+    analyzing: 'Ondergrond analyseren...',
+    showOnMap: 'Toon ondergrond op kaart',
+    showStages: 'Toon etappes',
+    unavailable: 'Ondergrondgegevens zijn tijdelijk niet beschikbaar.',
+  },
 };
 
 export type TranslationCatalog = typeof nl;

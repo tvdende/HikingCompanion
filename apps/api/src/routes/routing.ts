@@ -112,6 +112,9 @@ routingRoutes.post('/route', async (c) => {
         const durationSeconds = Math.round(
           Number(feature.properties?.['total-time'] || (distanceMeters / 1.34))
         );
+        const surfaceMessages = Array.isArray(feature.properties?.messages)
+          ? feature.properties.messages
+          : undefined;
 
         return c.json({
           success: true,
@@ -120,6 +123,7 @@ routingRoutes.post('/route', async (c) => {
           coordinates: formattedCoords,
           distanceMeters,
           durationSeconds,
+          surfaceMessages,
         });
       }
     }

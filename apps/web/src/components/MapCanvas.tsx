@@ -22,6 +22,7 @@ export interface MapCanvasProps {
   isEditing?: boolean;
   focusRouteTrigger?: number;
   sidebarWidth?: number;
+  activeLayerMode?: 'stages' | 'surface';
   onAddWaypoint?: (coord: Coordinate) => void;
   onMoveWaypoint?: (waypointId: string, newCoord: Coordinate) => void;
   onDeleteWaypoint?: (waypointId: string) => void;
@@ -40,6 +41,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   isEditing = false,
   focusRouteTrigger,
   sidebarWidth = 390,
+  activeLayerMode = 'stages',
   onAddWaypoint,
   onMoveWaypoint,
   onDeleteWaypoint,
@@ -232,7 +234,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   // Multi-Stage Polyline rendering
   const renderMultiStagePolylines = useCallback(
-    (currentRoute: HikeRoute, currentActiveStageId?: string | null) => {
+    (currentRoute: HikeRoute, currentActiveStageId?: string | null, layerMode: 'stages' | 'surface' = 'stages') => {
       const map = mapInstance.current;
       if (!map) return;
 
@@ -341,6 +343,23 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           }
         });
       }
+
+      const surfaceFeatures: GeoJSON.Feature<GeoJSON.LineString>[] = (currentRoute.surfaceBreakdown?.segments || []).map((segment) => ({
+        type: 'Feature',
+        properties: { color: { unpaved: '#22c55e', gravel: '#f59e0b', paved: '#64748b', unknown: '#94a3b8' }[segment.category] },
+        geometry: { type: 'LineString', coordinates: segment.coordinates.map((point) => [point.lng, point.lat]) },
+      }));
+      const surfaceData: GeoJSON.FeatureCollection<GeoJSON.LineString> = { type: 'FeatureCollection', features: surfaceFeatures };
+      const surfaceSource = map.getSource('surface-source') as maplibregl.GeoJSONSource | undefined;
+      if (surfaceSource) surfaceSource.setData(surfaceData);
+      else {
+        map.addSource('surface-source', { type: 'geojson', data: surfaceData });
+        map.addLayer({ id: 'surface-layer', type: 'line', source: 'surface-source', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 6, 'line-opacity': 1 } });
+      }
+      const showSurface = layerMode === 'surface' && surfaceFeatures.length > 0;
+      map.setLayoutProperty('route-layer-casing', 'visibility', showSurface ? 'none' : 'visible');
+      map.setLayoutProperty('route-layer-foot', 'visibility', showSurface ? 'none' : 'visible');
+      map.setLayoutProperty('surface-layer', 'visibility', showSurface ? 'visible' : 'none');
     },
     []
   );
@@ -399,6 +418,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     if (map.getLayer('route-layer-foot')) map.removeLayer('route-layer-foot');
     if (map.getLayer('route-layer-casing')) map.removeLayer('route-layer-casing');
     if (map.getSource('route-source')) map.removeSource('route-source');
+    if (map.getLayer('surface-layer')) map.removeLayer('surface-layer');
+    if (map.getSource('surface-source')) map.removeSource('surface-source');
   }, []);
 
   // Stage transition badges (S1, F1 / S2, Fn)
@@ -716,7 +737,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         }
 
         if (allCoords.length > 0) {
-          renderMultiStagePolylines(route, activeStageId);
+          renderMultiStagePolylines(route, activeStageId, activeLayerMode);
           renderBoundaryBadges(route);
 
           const isNewRouteLoaded = Boolean(
@@ -775,6 +796,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   }, [
     route,
     activeStageId,
+    activeLayerMode,
     waypoints.length,
     focusRouteTrigger,
     renderMultiStagePolylines,

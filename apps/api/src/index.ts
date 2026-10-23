@@ -5,6 +5,7 @@ import { authRoutes } from './routes/auth.js';
 import { adminRoutes } from './routes/admin.js';
 import { routingRoutes } from './routes/routing.js';
 import { routesApi } from './routes/routes.js';
+import { surfaceRoutes } from './routes/surface.js';
 
 export interface Env {
   DB?: D1Database;
@@ -47,5 +48,6 @@ app.route('/api/auth', authRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/routing', routingRoutes);
 app.route('/api/routes', routesApi);
+app.route('/api/routes/surface-analysis', surfaceRoutes);
 
 export default app;

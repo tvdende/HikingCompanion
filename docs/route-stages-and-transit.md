@@ -28,6 +28,11 @@ Wandelaars kunnen per etappe het vervoertype instellen:
 - **Kilometer-splitsing**: In de routestatistieken wordt direct onderscheid gemaakt tussen daadwerkelijke loopkilometers en verplaatsingen met openbaar vervoer:
   $$\text{Totaal: } 45\text{ km} \quad (\text{waarvan } 35\text{ km te voet} \ \bullet \ 10\text{ km OV})$$
 
+#### Ondergrond-analyse per wandelstage
+- Ondergrondsegmenten zijn gekoppeld aan de stage-ID en tellen uitsluitend voor wandelstages (`foot` of ongespecificeerd transporttype).
+- Bus-, trein- en veerbootetappes blijven als gestippelde contextlijnen zichtbaar wanneer de kaart op ondergrondweergave staat, maar tellen niet mee in kilometers of percentages.
+- De kaarttoggle wisselt de vaste wandel-etappelijnen in voor groen (onverhard), amber (grind), leigrijs (verhard) en lichtgrijs (onbekend), zonder waypoints of overgangsbadges te verwijderen.
+
 ### 2.3 GPX Import, Multi-File Etappes & Polyline Caching
 - **Multi-File & Multi-Stage Import**: Wanneer één of meerdere GPX-bestanden tegelijk worden geüpload (via bestandsselectie of drag & drop), toont de importdialoog de optie om **elk bestand automatisch als aparte etappe** aan te maken (`1 bestand = 1 etappe`) of samen te voegen tot één doorlopende etappe.
 - **Append vs. Nieuwe etappe**: Wanneer de gebruiker een GPX uploadt terwijl er al een route actief is, vraagt het dialoogvenster of de punten toegevoegd moeten worden aan de huidige etappe of als nieuwe etappe(s) moeten worden toegevoegd met behoud van de bestaande etappes.

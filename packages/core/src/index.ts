@@ -4,6 +4,9 @@ export * from './gpx/stitcher.js';
 export * from './gpx/metrics.js';
 export * from './gpx/serializer.js';
 export * from './route-editing/index.js';
+export * from './surface/classifier.js';
+export * from './surface/brouter.js';
+export * from './surface/breakdown.js';
 
 /**
  * Calculates straight-line distance between two coordinates in kilometers using Haversine formula.

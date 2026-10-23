@@ -43,6 +43,7 @@ export const routes = sqliteTable('routes', {
   waypointsJson: text('waypoints_json'),
   stagesJson: text('stages_json'),
   elevationMetricsJson: text('elevation_metrics_json'),
+  surfaceBreakdownJson: text('surface_breakdown_json'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
 });

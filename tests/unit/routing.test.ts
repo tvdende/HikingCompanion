@@ -37,6 +37,34 @@ describe('Routing API Proxy (/api/routing/route)', () => {
     expect(data.durationSeconds).toBeGreaterThan(0);
   });
 
+  it('preserves BRouter surface messages on a successful foot route', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        features: [{
+          geometry: { coordinates: [[5.1214, 52.0907], [5.13, 52.1]] },
+          properties: {
+            'track-length': '1000',
+            'total-time': '700',
+            messages: [['Longitude', 'Latitude', 'WayTags'], ['5121400', '52090700', 'surface=ground highway=footway']],
+          },
+        }],
+      }), { status: 200 })
+    );
+
+    try {
+      const res = await app.request('/api/routing/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coordinates: [coordA, coordB], profile: 'foot' }),
+      });
+      const data = await res.json() as { surfaceMessages?: string[][] };
+      expect(data.surfaceMessages?.[1]?.[2]).toContain('surface=ground');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('queries foot routing and returns path coordinates or falls back gracefully', async () => {
     const res = await app.request('/api/routing/route', {
       method: 'POST',
