@@ -42,6 +42,9 @@ before anything is imported.
 - Single-file uploads and single files with multiple track segments keep
   their current choices (no ordering step).
 - All new UI text is available in Dutch and English.
+- Saving a route no longer waits for, or fails on, an automatic server-side
+  surface analysis. Routes without a surface breakdown are saved immediately;
+  the breakdown is calculated on request with "Analyseer ondergrond".
 
 ## Capabilities
 
@@ -60,6 +63,9 @@ _None._
   changes so that multi-file uploads to an active route include the ordering
   step, merging with an active route appends instead of replacing, and the
   import dialog meets keyboard accessibility expectations.
+- `surface-analysis`: The "Automatic Surface Analysis on Route Save"
+  requirement changes so that saving never waits for an external surface
+  analysis; a provided breakdown is persisted, otherwise none is stored.
 
 ## Impact
 
@@ -78,4 +84,7 @@ _None._
 - `apps/web/src/index.css`: styles for the reorderable list.
 - `tests/unit` and `tests/e2e`: new and updated scenarios.
 - `docs/`: GPX import documentation.
-- No API or database changes.
+- `apps/api/src/routes/routes.ts`: save and update no longer call the
+  surface analysis; `apps/api/src/routes/surface.ts` tolerates stages without
+  coordinates.
+- No database changes.

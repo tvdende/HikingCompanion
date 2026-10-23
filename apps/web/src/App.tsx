@@ -45,7 +45,8 @@ import { SaveRouteModal, type SaveRouteData } from './components/SaveRouteModal'
 import { RouteLibraryModal } from './components/RouteLibraryModal';
 import { RouteMetadataModal } from './components/RouteMetadataModal';
 import { StageManagerPanel } from './components/StageManagerPanel';
-import { GpxImportModal } from './components/GpxImportModal';
+import { GpxImportModal, type GpxImportChoice, type GpxImportModalType } from './components/GpxImportModal';
+import { preparePendingGpxFile, sortFilesNaturally, type PendingGpxFile } from './utils/gpxFileOrder';
 import { SurfaceBreakdownCard } from './components/SurfaceBreakdownCard';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
@@ -78,7 +79,7 @@ export const App: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [routingMode, setRoutingMode] = useState<RoutingMode>('snap');
   const [stages, setStages] = useState<RouteStageDefinition[]>([
-    { id: 'stage-1', stageNumber: 1, title: 'Etappe 1', transportType: 'foot' },
+    { id: 'stage-1', stageNumber: 1, title: t('planner.stageDefaultTitle', { number: 1 }), transportType: 'foot' },
   ]);
   const [activeStageId, setActiveStageId] = useState<string | null>('stage-1');
   const [waypoints, setWaypoints] = useState<RouteWaypoint[]>([]);
@@ -90,7 +91,7 @@ export const App: React.FC = () => {
   const [history, setHistory] = useState<HistorySnapshot[]>([
     {
       waypoints: [],
-      stages: [{ id: 'stage-1', stageNumber: 1, title: 'Etappe 1', transportType: 'foot' }],
+      stages: [{ id: 'stage-1', stageNumber: 1, title: t('planner.stageDefaultTitle', { number: 1 }), transportType: 'foot' }],
       activeStageId: 'stage-1',
     },
   ]);
@@ -106,13 +107,11 @@ export const App: React.FC = () => {
   const [isAppendMode, setIsAppendMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [pendingGpxPayload, setPendingGpxPayload] = useState<{
-    files: File[];
-    texts: string[];
-  } | null>(null);
+  const [pendingGpxFiles, setPendingGpxFiles] = useState<PendingGpxFile[] | null>(null);
+  const gpxTriggerRef = useRef<HTMLElement | null>(null);
   const [gpxModalConfig, setGpxModalConfig] = useState<{
     isOpen: boolean;
-    type: 'append-choice' | 'multi-track' | 'multi-file';
+    type: GpxImportModalType;
     trackCount: number;
   }>({
     isOpen: false,
@@ -836,26 +835,18 @@ export const App: React.FC = () => {
   };
 
   // GPX Import Processing Engine
-  const executeGpxProcessing = (
-    files: File[],
-    texts: string[],
-    strategy: 'append-active' | 'new-stage' | 'separate-stages' | 'merged-single'
-  ) => {
+  const executeGpxProcessing = (orderedFiles: PendingGpxFile[], strategy: GpxImportChoice) => {
     try {
       const mergeSegments = strategy === 'merged-single';
-      const parsedRoutes: HikeRoute[] = [];
-
-      files.forEach((file, idx) => {
-        const text = texts[idx];
-        const defaultTitle = file.name.replace(/\.gpx$/i, '');
-        parsedRoutes.push(parseGpx(text, defaultTitle, { mergeSegments }));
-      });
+      const parsedRoutes: HikeRoute[] = orderedFiles.map((pending) =>
+        parseGpx(pending.text, pending.file.name.replace(/\.gpx$/i, ''), { mergeSegments })
+      );
 
       let finalRoute: HikeRoute;
       if (parsedRoutes.length === 1) {
         finalRoute = parsedRoutes[0];
       } else {
-        finalRoute = stitchGpxRoutes(parsedRoutes);
+        finalRoute = stitchGpxRoutes(parsedRoutes, { singleStage: strategy === 'merged-single' });
       }
 
       if (strategy === 'append-active' && currentRoute) {
@@ -871,10 +862,10 @@ export const App: React.FC = () => {
       }
 
       if (
-        (strategy === 'new-stage' || (strategy === 'separate-stages' && currentRoute)) &&
+        (strategy === 'new-stage' || strategy === 'separate-stages' || strategy === 'merged-single') &&
         currentRoute
       ) {
-        // Add as separate new stages preserving existing stages
+        // Add as new stage(s) after the existing stages; a merged import never replaces the active route
         const existingStages = [...stages];
         const newStagesList: RouteStageDefinition[] = [...existingStages];
         const allNewTaggedWps: RouteWaypoint[] = [];
@@ -890,7 +881,7 @@ export const App: React.FC = () => {
           newStagesList.push({
             id: stageId,
             stageNumber: nextNum,
-            title: extStage.title || `Etappe ${nextNum}`,
+            title: extStage.title || t('planner.stageDefaultTitle', { number: nextNum }),
             notes: extStage.notes,
             transportType: extStage.transportType || 'foot',
           });
@@ -955,71 +946,62 @@ export const App: React.FC = () => {
     }
   };
 
+  const openGpxModal = (pending: PendingGpxFile[], type: GpxImportModalType, trackCount: number) => {
+    setPendingGpxFiles(pending);
+    setGpxModalConfig({ isOpen: true, type, trackCount });
+  };
+
   const handleGpxFiles = async (files: File[], append = false) => {
     if (!files || files.length === 0) return;
     setFileError(null);
 
     try {
-      const texts: string[] = [];
-      for (const file of files) {
-        texts.push(await file.text());
+      const texts = await Promise.all(files.map((file) => file.text()));
+      const batch = Date.now();
+      const pending = sortFilesNaturally(
+        files.map((file, idx) => preparePendingGpxFile(file, texts[idx], `gpx-${batch}-${idx}`))
+      );
+
+      if (append && pending.length > 1) {
+        openGpxModal(pending, 'multi-file-append', pending.length);
+        return;
       }
 
       // Check if user has an existing active route
       if (!append && waypoints.length > 0 && currentRoute) {
-        setPendingGpxPayload({ files, texts });
-        setGpxModalConfig({
-          isOpen: true,
-          type: files.length > 1 ? 'multi-file' : 'append-choice',
-          trackCount: files.length,
-        });
+        openGpxModal(pending, pending.length > 1 ? 'multi-file' : 'append-choice', pending.length);
         return;
       }
 
       // Check if multiple files uploaded without active route
-      if (files.length > 1) {
-        setPendingGpxPayload({ files, texts });
-        setGpxModalConfig({
-          isOpen: true,
-          type: 'multi-file',
-          trackCount: files.length,
-        });
+      if (pending.length > 1) {
+        openGpxModal(pending, 'multi-file', pending.length);
         return;
       }
 
       // Check if single file has multiple track segments
-      if (files.length === 1) {
-        const info = detectGpxTracks(texts[0]);
-        if (info.hasMultipleStages) {
-          setPendingGpxPayload({ files, texts });
-          setGpxModalConfig({
-            isOpen: true,
-            type: 'multi-track',
-            trackCount: info.trackCount || info.segmentCount,
-          });
-          return;
-        }
+      const info = detectGpxTracks(pending[0].text);
+      if (info.hasMultipleStages) {
+        openGpxModal(pending, 'multi-track', info.trackCount || info.segmentCount);
+        return;
       }
 
-      executeGpxProcessing(files, texts, append ? 'append-active' : 'separate-stages');
+      executeGpxProcessing(pending, append ? 'append-active' : 'separate-stages');
     } catch (err: any) {
       console.error('GPX reading error:', err);
       setFileError(err.message || t('planner.errorGpxProcess'));
     }
   };
 
-  const handleGpxModalChoice = (
-    choice: 'append-active' | 'new-stage' | 'separate-stages' | 'merged-single'
-  ) => {
+  const closeGpxModal = () => {
     setGpxModalConfig((prev) => ({ ...prev, isOpen: false }));
-    if (!pendingGpxPayload) return;
+    setPendingGpxFiles(null);
+  };
 
-    executeGpxProcessing(
-      pendingGpxPayload.files,
-      pendingGpxPayload.texts,
-      choice
-    );
-    setPendingGpxPayload(null);
+  const handleGpxModalChoice = (choice: GpxImportChoice, orderedFiles: PendingGpxFile[]) => {
+    closeGpxModal();
+    if (orderedFiles.length === 0) return;
+    executeGpxProcessing(orderedFiles, choice);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1045,6 +1027,7 @@ export const App: React.FC = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingFile(false);
+    gpxTriggerRef.current = null;
     const files = Array.from(e.dataTransfer.files).filter(
       (f) => f.name.endsWith('.gpx') || f.type.includes('xml')
     );
@@ -1055,12 +1038,14 @@ export const App: React.FC = () => {
     }
   };
 
-  const triggerAppendGpx = () => {
+  const triggerAppendGpx = (e?: React.MouseEvent<HTMLElement>) => {
+    gpxTriggerRef.current = e?.currentTarget ?? null;
     setIsAppendMode(true);
     fileInputRef.current?.click();
   };
 
-  const triggerNewGpx = () => {
+  const triggerNewGpx = (e?: React.MouseEvent<HTMLElement>) => {
+    gpxTriggerRef.current = e?.currentTarget ?? null;
     setIsAppendMode(false);
     fileInputRef.current?.click();
   };
@@ -1478,11 +1463,10 @@ export const App: React.FC = () => {
         isOpen={gpxModalConfig.isOpen}
         type={gpxModalConfig.type}
         trackCount={gpxModalConfig.trackCount}
+        files={pendingGpxFiles ?? []}
+        triggerElement={gpxTriggerRef.current}
         onChoice={handleGpxModalChoice}
-        onClose={() => {
-          setGpxModalConfig((prev) => ({ ...prev, isOpen: false }));
-          setPendingGpxPayload(null);
-        }}
+        onClose={closeGpxModal}
       />
     </div>
   );

@@ -119,7 +119,7 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
 * **Gebruikersprofiel**: Opgeslagen routes, gekochte routes, favoriete POI's en abonnementsstatus.
 
 ### 4.3 Route Planning & Kaartbewerking (Hike Planner)
-* **GPX Import & Export**: Bestaande wandelroutes (GPX/KML) inladen, samenvoegen (stitch) en exporteren.
+* **GPX Import & Export**: Bestaande wandelroutes (GPX/KML) inladen, samenvoegen (stitch) en exporteren. Bij meerdere bestanden tegelijk bepaalt de planner eerst de volgorde van de etappes. Dat kan in een geordende lijst met slepen of ▲/▼, met *Volgorde voorstellen* op basis van aansluitende eindpunten, met verwijderen, of met een foutmelding per onleesbaar bestand.
 * **Camera Auto-Centrering op Route**: Zodra een route geopend wordt (uit de bibliotheek of via GPX-import), centreert en zoomt de kaartcamera automatisch (`fitBounds`) met optimale padding rondom de route, rekening houdend met de actieve zijpanelen op desktop en mobiel.
 * **Interactieve Route-editor**:
   * Puntsgewijs routes uittekenen op de kaart.
@@ -139,7 +139,7 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
   * Analyseert de route aan de hand van OSM-tags (`surface`, `tracktype`, `highway`).
   * Geplande wandelroutes gebruiken BRouter-metadata zonder extra analyseverzoek; GPX- en aangepaste tracks gebruiken de Cloudflare Worker corridorservice met Overpass `around:25`-queries, 100m downsampling en Worker Cache.
   * Het resultaat bevat gekleurde, stagegebonden segmenten en een expliciete bron/status (`brouter`, `overpass` of `unavailable`). Bij een Overpass-timeout blijft de route bruikbaar met volledig `unknown` resultaat in plaats van een misleidende schatting.
-  * Geanalyseerde resultaten worden als `surface_breakdown_json` bij de route opgeslagen. Metadatawijzigingen behouden dit resultaat; gewijzigde wandelgeometrie veroorzaakt heranalyse.
+  * Geanalyseerde resultaten worden als `surface_breakdown_json` bij de route opgeslagen. Metadatawijzigingen behouden dit resultaat; gewijzigde wandelgeometrie zonder nieuw resultaat wist de opgeslagen analyse. Opslaan wacht nooit op een ondergrondanalyse: een route zonder ondergrondverdeling wordt direct opgeslagen, en de analyse kan later via *Analyseer ondergrond* worden uitgevoerd en bij de volgende keer opslaan bewaard.
   * Realtime overzicht in kilometers en percentages:
     * *Onverhard / Bospad / Zandpad* (bijv. 14,2 km - 65%)
     * *Grind / Halfverhard* (bijv. 4,1 km - 19%)
@@ -153,7 +153,7 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
   * **Openbaar Vervoer (OV)**: Etappes markeren als wandelen, bus, trein of veerpont, met gestippelde weergave op de kaart, OV-icoonbadges en heldere scheiding tussen loopkilometers en OV-kilometers.
   * Volgorde van etappes wijzigen via drag-and-drop en stapknoppen (▲ / ▼).
   * Dual-camera navigatie: inzoomen op de geselecteerde etappe (`fitBounds`) en met één klik uitzoomen naar de volledige tocht (`🔍 Toon hele route`).
-  * GPX-importkeuzes (toevoegen aan huidige etappe vs. nieuwe etappe, en multi-track LAW-segmenten behouden).
+  * GPX-importkeuzes (toevoegen aan huidige etappe vs. nieuwe etappe, en multi-track LAW-segmenten behouden). Bij meerdere bestanden volgen de etappes de bevestigde volgorde. Een samengevoegde import levert één etappe op, die bij een actieve route na de bestaande etappes komt.
 
 ### 4.4 POI Detectie & Intelligentie (Points of Interest)
 * **Corridor Scanning**: Zoeken naar voorzieningen binnen een instelbare straal langs de actieve route via de OpenStreetMap / Overpass API.

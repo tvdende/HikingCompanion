@@ -7,6 +7,8 @@ export interface StitchGpxOptions {
   defaultTitle?: string;
   bridgeGaps?: boolean;
   gapMaxStepMeters?: number;
+  /** When true, all stitched coordinates (including gap bridges) become one stage. */
+  singleStage?: boolean;
 }
 
 /**
@@ -35,7 +37,7 @@ export function stitchGpxRoutes(
     };
   }
 
-  if (routes.length === 1) {
+  if (routes.length === 1 && !(opts.singleStage && routes[0].stages.length > 1)) {
     const single = routes[0];
     return {
       ...single,
@@ -105,6 +107,17 @@ export function stitchGpxRoutes(
   }
 
   const overallMetrics = calculateRouteMetrics(allCoordinates);
+
+  if (opts.singleStage && stitchedStages.length > 1) {
+    const first = stitchedStages[0];
+    stitchedStages.splice(0, stitchedStages.length, {
+      id: first.id,
+      stageNumber: 1,
+      title: title || first.title,
+      distanceKm: overallMetrics.totalDistanceKm,
+      coordinates: [...allCoordinates],
+    });
+  }
 
   // Derive consolidated metadata
   const location = routes.find((r) => r.location)?.location;

@@ -166,7 +166,7 @@ export async function analyzeSurface(coordinates: Coordinate[], stageId: string)
 
 export async function analyzeRouteSurface(stages: HikeStage[]): Promise<ReturnType<typeof calculateSurfaceBreakdown> | null> {
   const walkingStages = stages.filter(
-    (stage) => (stage.transportType === undefined || stage.transportType === 'foot') && stage.coordinates.length > 1
+    (stage) => (stage.transportType === undefined || stage.transportType === 'foot') && (stage.coordinates?.length ?? 0) > 1
   );
   if (walkingStages.length === 0) return null;
 
