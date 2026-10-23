@@ -8,14 +8,30 @@ export type AppMode = 'planner' | 'companion';
 
 export type SurfaceCategory = 'unpaved' | 'paved' | 'gravel' | 'unknown';
 
+export type SurfaceAnalysisSource = 'brouter' | 'overpass' | 'unavailable';
+
+export type SurfaceAnalysisStatus = 'complete' | 'unavailable';
+
+export interface SurfaceSegment {
+  stageId: string;
+  category: SurfaceCategory;
+  coordinates: Coordinate[];
+  distanceMeters: number;
+}
+
 export interface SurfaceBreakdown {
   unpavedMeters: number;
   pavedMeters: number;
   gravelMeters: number;
   unknownMeters: number;
+  totalMeters: number;
   unpavedPercentage: number;
   pavedPercentage: number;
   gravelPercentage: number;
+  unknownPercentage: number;
+  segments: SurfaceSegment[];
+  source: SurfaceAnalysisSource;
+  status: SurfaceAnalysisStatus;
 }
 
 export type PoiCategory = 'supermarket' | 'camping' | 'hostel' | 'hotel';

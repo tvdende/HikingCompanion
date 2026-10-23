@@ -135,10 +135,14 @@ Alle technologieën zijn gekozen op basis van **bewezen volwassenheid, actieve c
   * Filtertabs (`Alle`, `🟡 Concepten`, `🟢 Definitief`), zoekbalk met realtime filtering, route laden op de kaart, metadata-beheer (`Beheren`) en route verwijderen.
 * **Ondergrond-analyse (Surface Breakdown)**:
   * Analyseert de route aan de hand van OSM-tags (`surface`, `tracktype`, `highway`).
+  * Geplande wandelroutes gebruiken BRouter-metadata zonder extra analyseverzoek; GPX- en aangepaste tracks gebruiken de Cloudflare Worker corridorservice met Overpass `around:25`-queries, 100m downsampling en Worker Cache.
+  * Het resultaat bevat gekleurde, stagegebonden segmenten en een expliciete bron/status (`brouter`, `overpass` of `unavailable`). Bij een Overpass-timeout blijft de route bruikbaar met volledig `unknown` resultaat in plaats van een misleidende schatting.
+  * Geanalyseerde resultaten worden als `surface_breakdown_json` bij de route opgeslagen. Metadatawijzigingen behouden dit resultaat; gewijzigde wandelgeometrie veroorzaakt heranalyse.
   * Realtime overzicht in kilometers en percentages:
     * *Onverhard / Bospad / Zandpad* (bijv. 14,2 km - 65%)
     * *Grind / Halfverhard* (bijv. 4,1 km - 19%)
     * *Asfalt / Verhard* (bijv. 3,5 km - 16%)
+  * De planner kan wisselen tussen etappekleuren en ondergrondkleuren; transitlijnen en route-markers blijven in beide modi zichtbaar.
 * **Etappebeheer & Openbaar Vervoer (Multi-Stage Management)**:
   * Uitgebreid etappebeheer voor meerdaagse tochten (zie [docs/route-stages-and-transit.md](file:///c:/src/TE/HikingCompanion/docs/route-stages-and-transit.md)).
   * Routepunten splitsen in nieuwe etappes via het contextuele popup-menu (`✂️ Splits in nieuwe etappe`) of direct nieuwe etappes toevoegen via het zijpaneel (`+ Nieuwe etappe`).

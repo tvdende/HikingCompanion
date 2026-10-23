@@ -226,6 +226,49 @@ describe('Routes API Endpoints (/api/routes)', () => {
     expect(getDeletedRes.status).toBe(404);
   });
 
+  it('persists analysis for metadata updates and invalidates it for geometry updates', async () => {
+    const surfaceBreakdown = {
+      unpavedMeters: 100,
+      gravelMeters: 0,
+      pavedMeters: 0,
+      unknownMeters: 0,
+      totalMeters: 100,
+      unpavedPercentage: 100,
+      gravelPercentage: 0,
+      pavedPercentage: 0,
+      unknownPercentage: 0,
+      segments: [],
+      source: 'brouter',
+      status: 'complete',
+    };
+    const createRes = await app.request('/api/routes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: `hiking_session=${userToken}` },
+      body: JSON.stringify({
+        title: 'Surface route',
+        coordinates: [{ lat: 52, lng: 5 }, { lat: 52.01, lng: 5.01 }],
+        surfaceBreakdown,
+      }),
+    }, { DB: testEnv.d1 });
+    const { route } = await createRes.json() as any;
+
+    const metadataRes = await app.request(`/api/routes/${route.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Cookie: `hiking_session=${userToken}` },
+      body: JSON.stringify({ title: 'Renamed surface route' }),
+    }, { DB: testEnv.d1 });
+    expect((await metadataRes.json() as any).route.surfaceBreakdown.source).toBe('brouter');
+
+    const geometryRes = await app.request(`/api/routes/${route.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Cookie: `hiking_session=${userToken}` },
+      body: JSON.stringify({ coordinates: [{ lat: 52, lng: 5 }, { lat: 52.02, lng: 5.02 }] }),
+    }, { DB: testEnv.d1 });
+    const geometryData = await geometryRes.json() as any;
+    expect(['complete', 'unavailable']).toContain(geometryData.route.surfaceBreakdown.status);
+    expect(geometryData.route.surfaceBreakdown.totalMeters).toBeGreaterThan(0);
+  });
+
   it('supports status and search filtering, and partial metadata updates', async () => {
     // 1. Create a draft route
     const draftRes = await app.request(

@@ -9,6 +9,7 @@ import type {
   RoutingMode,
   RouteStatus,
   RouteStageDefinition,
+  SurfaceBreakdown,
 } from '@hiking-companion/core';
 import {
   parseGpx,
@@ -31,6 +32,8 @@ import {
   diffRouteSegments,
   createWaypointPairs,
   globalSegmentCache,
+  parseBRouterMessages,
+  calculateSurfaceBreakdown,
 } from '@hiking-companion/core';
 import { Header } from './components/Header';
 import { MapCanvas } from './components/MapCanvas';
@@ -43,6 +46,7 @@ import { RouteLibraryModal } from './components/RouteLibraryModal';
 import { RouteMetadataModal } from './components/RouteMetadataModal';
 import { StageManagerPanel } from './components/StageManagerPanel';
 import { GpxImportModal } from './components/GpxImportModal';
+import { SurfaceBreakdownCard } from './components/SurfaceBreakdownCard';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useAuth } from './context/AuthContext';
@@ -90,6 +94,8 @@ export const App: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
   const [focusRouteTrigger, setFocusRouteTrigger] = useState(0);
+  const [activeLayerMode, setActiveLayerMode] = useState<'stages' | 'surface'>('stages');
+  const [isAnalyzingSurface, setIsAnalyzingSurface] = useState(false);
 
   // File Upload State & GPX Choice Modal
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -127,6 +133,24 @@ export const App: React.FC = () => {
     return 390;
   });
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+
+  const handleAnalyzeSurface = async () => {
+    if (!currentRoute) return;
+    const walkingStages = currentRoute.stages.filter((stage) => stage.transportType === undefined || stage.transportType === 'foot');
+    if (!walkingStages.some((stage) => stage.coordinates.length > 1)) return;
+    setIsAnalyzingSurface(true);
+    try {
+      const response = await fetch('/api/routes/surface-analysis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stages: walkingStages }),
+      });
+      if (!response.ok) throw new Error('Surface analysis failed');
+      const data = await response.json() as { surfaceBreakdown: SurfaceBreakdown };
+      setCurrentRoute((route) => route ? { ...route, surfaceBreakdown: data.surfaceBreakdown } : route);
+    } finally {
+      setIsAnalyzingSurface(false);
+    }
+  };
 
   const handleStartResizeSidebar = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -290,6 +314,13 @@ export const App: React.FC = () => {
         totalDistanceKm: distKm,
         stages: hikeStages,
         elevationMetrics: overallMetrics.elevationMetrics,
+        surfaceBreakdown: (() => {
+          const surfaceSegments = computedSegments.flatMap((segment) => {
+            const stageId = waypoints.find((waypoint) => waypoint.id === segment.fromWaypointId)?.stageId || 'stage-1';
+            return parseBRouterMessages(segment.surfaceMessages ?? [], segment.coordinates, stageId);
+          });
+          return surfaceSegments.length > 0 ? calculateSurfaceBreakdown(surfaceSegments) : undefined;
+        })(),
         createdAt: prev?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }));
@@ -460,6 +491,8 @@ export const App: React.FC = () => {
                 segmentDistMeters =
                   data.distanceMeters ||
                   calculateHaversineDistanceKm(pair.from.coordinate, pair.to.coordinate) * 1000;
+                const surfaceMessages = Array.isArray(data.surfaceMessages) ? data.surfaceMessages as string[][] : undefined;
+                (pair as typeof pair & { surfaceMessages?: string[][] }).surfaceMessages = surfaceMessages;
               } else {
                 isFallback = true;
                 segmentCoords = interpolateStraightLine(pair.from.coordinate, pair.to.coordinate);
@@ -503,6 +536,7 @@ export const App: React.FC = () => {
             distanceMeters: segmentDistMeters,
             elevationGainMeters: segMetrics.elevationMetrics.elevationGainMeters,
             elevationLossMeters: segMetrics.elevationMetrics.elevationLossMeters,
+            surfaceMessages: (pair as typeof pair & { surfaceMessages?: string[][] }).surfaceMessages,
           };
 
           return { index: pair.index, segment: seg };
@@ -695,6 +729,7 @@ export const App: React.FC = () => {
       coordinates: currentRoute.stages.flatMap((s) => s.coordinates || []),
       stages: currentRoute.stages,
       elevationMetrics: currentRoute.elevationMetrics,
+      surfaceBreakdown: currentRoute.surfaceBreakdown,
       waypoints,
     };
 
@@ -726,6 +761,7 @@ export const App: React.FC = () => {
             location: saveData.location,
             status: saveData.status || 'draft',
             priceEur: saveData.priceEur ?? 0,
+            surfaceBreakdown: data.route.surfaceBreakdown || prev.surfaceBreakdown,
           }
         : null
     );
@@ -761,6 +797,7 @@ export const App: React.FC = () => {
         },
       ],
       elevationMetrics: r.elevationMetrics,
+      surfaceBreakdown: r.surfaceBreakdown || undefined,
       createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
     };
@@ -1100,6 +1137,7 @@ export const App: React.FC = () => {
               isEditing={isEditing}
               focusRouteTrigger={focusRouteTrigger}
               sidebarWidth={sidebarWidth}
+              activeLayerMode={activeLayerMode}
               onAddWaypoint={handleAddWaypoint}
               onMoveWaypoint={handleMoveWaypoint}
               onDeleteWaypoint={handleDeleteWaypoint}
@@ -1229,6 +1267,14 @@ export const App: React.FC = () => {
                         </span>
                       </div>
                     </div>
+
+                    <SurfaceBreakdownCard
+                      breakdown={currentRoute.surfaceBreakdown}
+                      isAnalyzing={isAnalyzingSurface}
+                      isSurfaceMode={activeLayerMode === 'surface'}
+                      onAnalyze={handleAnalyzeSurface}
+                      onToggleMap={() => setActiveLayerMode((mode) => mode === 'surface' ? 'stages' : 'surface')}
+                    />
 
                     <div className="flex gap-2">
                       <Button

@@ -9,6 +9,10 @@ schema: spec-driven
 #     We use conventional commits
 #     Domain: e-commerce platform
 
+context: "Hiking Companion is an npm-workspaces TypeScript monorepo. apps/web is a React and Vite progressive web app; apps/api is a Cloudflare Worker API using Drizzle; packages/core contains shared domain logic; unit tests are in tests/unit and Playwright E2E tests are in tests/e2e. New functionality and OpenSpec implementations must use a feat/<kebab-case> branch; fixes use fix/<kebab-case>. Do not work directly on main or push directly to main. Before a pull request, run npm run test:unit and npm run build; run npm run test:e2e locally. Keep docs/ current when functionality, architecture, libraries, or data structures change. The UI supports Dutch and English. Before adding UI copy, reuse existing keys where possible; otherwise add matching keys to apps/web/src/i18n/locales/nl.ts and en.ts. Touched UI must not contain hardcoded user-facing text."
+
+operations: { apply: { guidance: ["Confirm that implementation work is on a feat/<kebab-case> branch before changing code.", "Run the narrowest relevant validation after each implementation task and report final test results concisely.", "Update relevant documentation and maintain Dutch-English translation-key parity for touched UI."] }, archive: { guidance: ["Archive only after the change tasks and applicable validation are complete."] } }
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 # Example:
@@ -18,6 +22,7 @@ schema: spec-driven
 #       - Always include a "Non-goals" section
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
+
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.

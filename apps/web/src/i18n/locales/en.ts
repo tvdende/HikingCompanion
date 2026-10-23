@@ -305,4 +305,16 @@ export const en: TranslationCatalog = {
     btnImportAsSingle: 'Import as a single merged stage',
     btnCancel: 'Cancel',
   },
+  surface: {
+    title: 'Surface Breakdown',
+    unpaved: 'Unpaved',
+    gravel: 'Gravel / Compacted',
+    paved: 'Paved',
+    unknown: 'Unknown',
+    analyzeButton: 'Analyze surface',
+    analyzing: 'Analyzing surface...',
+    showOnMap: 'Show surface on map',
+    showStages: 'Show stages',
+    unavailable: 'Surface data is temporarily unavailable.',
+  },
 };

@@ -1,0 +1,1 @@
+ALTER TABLE `routes` ADD `surface_breakdown_json` text;

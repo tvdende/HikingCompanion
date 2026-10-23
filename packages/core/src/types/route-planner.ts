@@ -27,6 +27,7 @@ export interface RouteSegment {
   distanceMeters: number;
   elevationGainMeters?: number;
   elevationLossMeters?: number;
+  surfaceMessages?: string[][];
 }
 
 export interface RouteEditorState {
