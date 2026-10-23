@@ -3,6 +3,8 @@ import type { RouteStageDefinition, TransportType } from '@hiking-companion/core
 import type { RouteStagesBreakdown } from '@hiking-companion/core';
 import { STAGE_PALETTE } from './MapCanvas.js';
 import { useTranslation } from '../i18n';
+import { ConfirmationModal } from './ConfirmationModal';
+import { useFeedback } from '../context/FeedbackContext';
 
 export interface StageManagerPanelProps {
   stages: RouteStageDefinition[];
@@ -30,8 +32,13 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
   onZoomFullRoute,
 }) => {
   const { t } = useTranslation();
+  const feedback = useFeedback();
   const [draggedStageId, setDraggedStageId] = useState<string | null>(null);
   const [expandedNotesStageId, setExpandedNotesStageId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    stage: RouteStageDefinition;
+    trigger: HTMLElement;
+  } | null>(null);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedStageId(id);
@@ -75,11 +82,14 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
     onReorderStages(newOrder);
   };
 
-  const handleDelete = (stage: RouteStageDefinition) => {
-    const confirmMessage = t('stages.deleteStageConfirm', { title: stage.title });
-    if (window.confirm(confirmMessage)) {
-      onDeleteStage(stage.id);
-    }
+  const handleDelete = (stage: RouteStageDefinition, trigger: HTMLElement) => {
+    setPendingDelete({ stage, trigger });
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    onDeleteStage(pendingDelete.stage.id);
+    feedback.success(t('feedback.stageDeleted', { title: pendingDelete.stage.title }));
   };
 
   // Find metric for stage
@@ -258,7 +268,7 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
                       <button
                         type="button"
                         className="stage-action-btn delete"
-                        onClick={() => handleDelete(stage)}
+                        onClick={(event) => handleDelete(stage, event.currentTarget)}
                         title={t('stages.deleteStage')}
                       >
                         🗑️
@@ -294,6 +304,14 @@ export const StageManagerPanel: React.FC<StageManagerPanelProps> = ({
           );
         })}
       </div>
+      <ConfirmationModal
+        isOpen={pendingDelete !== null}
+        title={t('common.delete')}
+        description={pendingDelete ? t('stages.deleteStageConfirm', { title: pendingDelete.stage.title }) : ''}
+        onConfirm={confirmDelete}
+        onClose={() => setPendingDelete(null)}
+        triggerElement={pendingDelete?.trigger}
+      />
     </div>
   );
 };

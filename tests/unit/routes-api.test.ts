@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { createTestDb } from './helpers/createTestDb.js';
 import { getOrCreateOAuthUser } from '../../apps/api/src/routes/auth.js';
 import { createSession } from '../../apps/api/src/auth/session.js';
@@ -10,6 +10,7 @@ describe('Routes API Endpoints (/api/routes)', () => {
   let otherUserToken: string;
 
   beforeEach(async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('External surface service unavailable in unit test')));
     testEnv = createTestDb();
 
     // Create primary user
@@ -33,6 +34,10 @@ describe('Routes API Endpoints (/api/routes)', () => {
     );
     const { token: tokenB } = await createSession(testEnv.db, userB.id);
     otherUserToken = tokenB;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('rejects unauthenticated requests with 401 Unauthorized', async () => {

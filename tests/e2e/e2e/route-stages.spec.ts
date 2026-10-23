@@ -101,17 +101,51 @@ test.describe('Multi-Stage & Public Transit Management Suite', () => {
     await expect(viewFullRouteBtn).toBeVisible();
     await viewFullRouteBtn.click();
 
-    // Delete Stage 2 with confirmation dialog
-    page.on('dialog', async (dialog) => {
-      await dialog.accept();
-    });
-
+    // Delete Stage 2 with the in-app confirmation dialog
     const deleteStage2Btn = stageCard2.locator('.stage-action-btn.delete');
     await deleteStage2Btn.click();
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Verwijderen' }).click();
 
     // Verify only 1 stage remains
     await expect(page.locator('#stat-stage-count')).toHaveText('1');
     await expect(stageCard2).not.toBeVisible();
+    await expect(page.getByRole('status')).toContainText('Etappe "Etappe 2" is verwijderd.');
+  });
+
+  test('cancels stage deletion with Escape and restores focus', async ({ page }) => {
+    const { point1, point2 } = getMapClickCoordinates(page);
+    await page.locator('#btn-new-route').click();
+    const mapCanvas = page.locator('#maplibre-canvas');
+    await mapCanvas.click({ position: point1 });
+    await mapCanvas.click({ position: point2 });
+    await page.locator('#btn-add-new-stage').click();
+
+    const deleteButton = page.locator('#stage-card-2 .stage-action-btn.delete');
+    await deleteButton.focus();
+    await deleteButton.click();
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(confirmation).not.toBeVisible();
+    await expect(deleteButton).toBeFocused();
+    await expect(page.locator('#stat-stage-count')).toHaveText('2');
+  });
+
+  test('uses the selected language in the confirmation dialog', async ({ page }) => {
+    const { point1, point2 } = getMapClickCoordinates(page);
+    await page.locator('#lang-btn-en').click();
+    await page.locator('#btn-new-route').click();
+    const mapCanvas = page.locator('#maplibre-canvas');
+    await mapCanvas.click({ position: point1 });
+    await mapCanvas.click({ position: point2 });
+    await page.locator('#btn-add-new-stage').click();
+
+    await page.locator('#stage-card-2 .stage-action-btn.delete').click();
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toContainText('Are you sure you want to delete "Stage 2"?');
+    await expect(confirmation.getByRole('button', { name: 'Delete' })).toBeVisible();
   });
 
   test('reorders stages using step buttons (▲ / ▼)', async ({ page }) => {

@@ -299,4 +299,68 @@ test.describe('Route Management Library & Multi-GPX Stitching Suite', () => {
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe('Veluwezoom Verkenning.gpx');
   });
+
+  test('confirms route deletion and announces the deleted route', async ({ page }) => {
+    await page.route('**/api/routes/route-concept-1', async (route) => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 204 });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.locator('#btn-open-route-library-sidebar').click();
+    const deleteButton = page.locator('#btn-delete-route-route-concept-1');
+    await deleteButton.click();
+
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toContainText('Veluwezoom Verkenning');
+    await confirmation.getByRole('button', { name: 'Verwijderen' }).click();
+
+    await expect(page.locator('#saved-routes-list')).not.toContainText('Veluwezoom Verkenning');
+    await expect(page.getByRole('status')).toContainText('Route "Veluwezoom Verkenning" is verwijderd.');
+  });
+
+  test('keeps a failed deletion dialog open with an inline request error', async ({ page }) => {
+    await page.route('**/api/routes/route-concept-1', async (route) => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Verwijderen mislukt.' }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.locator('#btn-open-route-library-sidebar').click();
+    await page.locator('#btn-delete-route-route-concept-1').click();
+    const confirmation = page.getByRole('alertdialog');
+    await confirmation.getByRole('button', { name: 'Verwijderen' }).click();
+
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toContainText('Fout bij verwijderen van route.');
+  });
+
+  test('shows a persistent error toast when route export fails', async ({ page }) => {
+    await page.route('**/api/routes/route-def-1', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 500 });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.locator('#btn-open-route-library-sidebar').click();
+    await page.locator('#btn-export-route-route-def-1').click();
+
+    const errorToast = page.getByRole('alert');
+    await expect(errorToast).toContainText('Kon route niet exporteren als GPX.');
+    await page.waitForTimeout(4500);
+    await expect(errorToast).toBeVisible();
+    await errorToast.getByRole('button', { name: 'Melding sluiten' }).click();
+    await expect(errorToast).not.toBeVisible();
+  });
 });
